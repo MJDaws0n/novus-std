@@ -1,72 +1,156 @@
 // ---------------------------------------------------------------------------
-// std/memory_windows_amd64 - memory & buffer ops (Windows x86-64)
+// std/windows_amd64 - Windows x86-64 platform layer
+// Uses win_call() for Windows API calls + getreg(rax) for return values.
 // ---------------------------------------------------------------------------
 
-module std_memory_windows_amd64;
+module std_windows_amd64;
 
 import core;
-import strings;
-import windows_amd64;
 
-fn make_buffer(size: i32) -> str {
-    if (size <= 0) { return ""; }
-    let buf: str = "        ";
-    while (len(buf) < size) {
-        buf = buf + buf;
-    }
-    if (len(buf) > size) {
-        let pa: u64 = ptr(buf);
-        return copy_bytes_raw(pa, size);
-    }
-    return buf;
+fn i32_to_u64(val: i32) -> u64 {
+    mov(rax, val);
+    return getreg(rax);
 }
 
-// Copy raw bytes using Windows heap allocation + RtlMoveMemory
-fn copy_bytes_raw(src: u64, length: i32) -> str {
-    if (length <= 0) { return ""; }
+fn i64_to_u64(val: i64) -> u64 {
+    mov(rax, val);
+    return getreg(rax);
+}
+
+fn u64_to_i64(val: u64) -> i64 {
+    mov(rax, val);
+    return getreg(rax);
+}
+
+fn array_len(arr: []i32) -> i32 {
+    mov(r9, arr);
+    let hdr: u64 = getreg(r9);
+    return load32(hdr + 8);
+}
+
+fn array_len_u64(arr: []u64) -> i32 {
+    mov(r9, arr);
+    let hdr: u64 = getreg(r9);
+    return load32(hdr + 8);
+}
+
+fn print(msg: str) -> void {
+    let out: str = msg + "\n";
+    win_call("GetStdHandle", -11);
+    let h: u64 = getreg(rax);
+    win_call("WriteConsoleA", h, out, len(out), 0, 0);
+}
+
+fn print_raw(msg: str) -> void {
+    win_call("GetStdHandle", -11);
+    let h: u64 = getreg(rax);
+    win_call("WriteConsoleA", h, msg, len(msg), 0, 0);
+}
+
+fn exit(code: i32) -> void {
+    win_call("ExitProcess", code);
+}
+
+fn get_time_ns() -> i64 {
+    // Use GetTickCount64 (returns ms since boot), convert to ns
+    win_call("GetTickCount64");
+    let ms: i64 = getreg(rax);
+    return ms * 1000000;
+}
+
+fn input(prompt: str, buf_len: i32 = 128) -> str {
+    print_raw(prompt);
+    win_call("GetStdHandle", -10);
+    let h: u64 = getreg(rax);
     let buf: str = "";
-    let j: i32 = 0;
-    while (j < length) { buf = buf + " "; j = j + 1; }
-    let dest: u64 = ptr(buf);
-    win_call("RtlMoveMemory", dest, src, length);
-    return buf;
+    while (len(buf) < buf_len) {
+        buf = buf + " ";
+    }
+    win_call("ReadConsoleA", h, buf, buf_len, 0, 0);
+    let out: str = "";
+    let i: i32 = 0;
+    while (i < buf_len) {
+        let ch: str = buf[i];
+        if (ch == '\r' || ch == '\n') { break; }
+        if (ch == '\0') { break; }
+        out = out + ch;
+        i = i + 1;
+    }
+    return out;
 }
 
-fn copy_bytes(src: u64, length: i32) -> str {
-    return copy_bytes_raw(src, length);
+fn ptr(s: str) -> u64 {
+    mov(rax, s);
+    return getreg(rax);
 }
 
-fn cstr_to_str(addr: u64) -> str {
-    let slen: u64 = cstr_len(addr);
-    if (slen == 0) { return ""; }
-    return copy_bytes(addr, u64_to_i32(slen));
+fn array_data_ptr_u64(arr: []u64) -> i64 {
+    mov(r9, arr);
+    let hdr: u64 = getreg(r9);
+    return load64(hdr);
 }
 
-fn byte_at(s: str, i: i32) -> i32 {
-    return read_byte(ptr(s) + i32_to_u64(i));
+// Create and run a process using CreateProcessA, wait for completion
+fn spawn_process_wait(exe: str) -> i32 {
+    // STARTUPINFOA: 104 bytes on x64, cbSize at offset 0
+    let si: str = make_buffer(104);
+    memset(ptr(si), 0, 104);
+    store32(ptr(si), 104);
+
+    // PROCESS_INFORMATION: 24 bytes on x64
+    let pi: str = make_buffer(24);
+    memset(ptr(pi), 0, 24);
+
+    // CreateProcessA(NULL, cmdLine, NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi)
+    win_call("CreateProcessA", 0, exe, 0, 0, 0, 0, 0, 0, si, pi);
+    let ok: u64 = getreg(rax);
+    if (ok == 0) { return -1; }
+
+    // Extract hProcess from PROCESS_INFORMATION (offset 0, 8 bytes)
+    let hp: i64 = load64(ptr(pi));
+    let h_proc: u64 = i64_to_u64(hp);
+
+    // WaitForSingleObject(hProcess, INFINITE=0xFFFFFFFF)
+    win_call("WaitForSingleObject", h_proc, 4294967295);
+
+    // GetExitCodeProcess(hProcess, &exitCode)
+    let ec: i32 = 0;
+    let ec_addr: u64 = &ec;
+    win_call("GetExitCodeProcess", h_proc, ec_addr);
+
+    // CloseHandle(hProcess)
+    win_call("CloseHandle", h_proc);
+
+    // Extract hThread from PROCESS_INFORMATION (offset 8, 8 bytes)
+    let ht: i64 = load64(ptr(pi) + 8);
+    let h_thread: u64 = i64_to_u64(ht);
+    win_call("CloseHandle", h_thread);
+
+    return ec;
 }
 
-fn argv_get(argv: u64, index: i32) -> str {
-    let offset: u64 = i32_to_u64(index) * 8;
-    let addr: u64 = i64_to_u64(load64(argv + offset));
-    return cstr_to_str(addr);
+// Windows doesn't have fork(); stub returns -1
+fn fork() -> i32 {
+    return -1;
 }
 
-// Write a single byte using RtlFillMemory
-fn store8(addr: u64, val: i32) -> void {
-    let byte_val: i32 = ((val % 256) + 256) % 256;
-    win_call("RtlFillMemory", addr, 1, byte_val);
+fn execve_raw(path: str, argv: []u64) -> i32 {
+    // Not available on Windows; use spawn_process_wait instead
+    return -1;
 }
 
-// Write a 32-bit value to a raw memory address (little-endian)
-fn store32(addr: u64, val: i32) -> void {
-    store8(addr, val % 256);
-    store8(addr + 1, (val / 256) % 256);
-    store8(addr + 2, (val / 65536) % 256);
-    store8(addr + 3, (val / 16777216) % 256);
-}
-
-// Fill a memory region with a byte value
-fn memset(addr: u64, val: i32, count: i32) -> void {
-    win_call("RtlFillMemory", addr, count, val);
+fn spawn_execve(path: str, argv: []u64) -> i32 {
+    // Build a command line string from argv
+    let cmd: str = "";
+    let argc: i32 = array_len_u64(argv);
+    let i: i32 = 0;
+    while (i < argc) {
+        let arg_addr: u64 = i64_to_u64(load64(array_data_ptr_u64(argv) + i32_to_u64(i) * 8));
+        if (arg_addr == 0) { break; }
+        let arg: str = cstr_to_str(arg_addr);
+        if (i > 0) { cmd = cmd + " "; }
+        cmd = cmd + arg;
+        i = i + 1;
+    }
+    return spawn_process_wait(cmd);
 }
