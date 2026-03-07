@@ -97,20 +97,132 @@ fn str_find(s: str, needle: str) -> i32 {
     return -1;
 }
 
+// ---------------------------------------------------------------------------
+// Safe character lookup — returns string literal for each byte value.
+// Avoids store8/copy_bytes_raw which have register clobbering issues
+// on Linux ARM64 when compiled with Novus V0.1.3.
+// ---------------------------------------------------------------------------
 fn _byte_to_char(val: i32) -> str {
-    let c: str = " ";
-    store8(ptr(c), val);
-    return c;
+    if (val == 0) { return "\0"; }
+    if (val == 9) { return "\t"; }
+    if (val == 10) { return "\n"; }
+    if (val == 13) { return "\r"; }
+    if (val == 32) { return " "; }
+    if (val == 33) { return "!"; }
+    if (val == 34) { return "\""; }
+    if (val == 35) { return "#"; }
+    if (val == 36) { return "$"; }
+    if (val == 37) { return "%"; }
+    if (val == 38) { return "&"; }
+    if (val == 39) { return "'"; }
+    if (val == 40) { return "("; }
+    if (val == 41) { return ")"; }
+    if (val == 42) { return "*"; }
+    if (val == 43) { return "+"; }
+    if (val == 44) { return ","; }
+    if (val == 45) { return "-"; }
+    if (val == 46) { return "."; }
+    if (val == 47) { return "/"; }
+    if (val == 48) { return "0"; }
+    if (val == 49) { return "1"; }
+    if (val == 50) { return "2"; }
+    if (val == 51) { return "3"; }
+    if (val == 52) { return "4"; }
+    if (val == 53) { return "5"; }
+    if (val == 54) { return "6"; }
+    if (val == 55) { return "7"; }
+    if (val == 56) { return "8"; }
+    if (val == 57) { return "9"; }
+    if (val == 58) { return ":"; }
+    if (val == 59) { return ";"; }
+    if (val == 60) { return "<"; }
+    if (val == 61) { return "="; }
+    if (val == 62) { return ">"; }
+    if (val == 63) { return "?"; }
+    if (val == 64) { return "@"; }
+    if (val == 65) { return "A"; }
+    if (val == 66) { return "B"; }
+    if (val == 67) { return "C"; }
+    if (val == 68) { return "D"; }
+    if (val == 69) { return "E"; }
+    if (val == 70) { return "F"; }
+    if (val == 71) { return "G"; }
+    if (val == 72) { return "H"; }
+    if (val == 73) { return "I"; }
+    if (val == 74) { return "J"; }
+    if (val == 75) { return "K"; }
+    if (val == 76) { return "L"; }
+    if (val == 77) { return "M"; }
+    if (val == 78) { return "N"; }
+    if (val == 79) { return "O"; }
+    if (val == 80) { return "P"; }
+    if (val == 81) { return "Q"; }
+    if (val == 82) { return "R"; }
+    if (val == 83) { return "S"; }
+    if (val == 84) { return "T"; }
+    if (val == 85) { return "U"; }
+    if (val == 86) { return "V"; }
+    if (val == 87) { return "W"; }
+    if (val == 88) { return "X"; }
+    if (val == 89) { return "Y"; }
+    if (val == 90) { return "Z"; }
+    if (val == 91) { return "["; }
+    if (val == 92) { return "\\"; }
+    if (val == 93) { return "]"; }
+    if (val == 94) { return "^"; }
+    if (val == 95) { return "_"; }
+    if (val == 96) { return "`"; }
+    if (val == 97) { return "a"; }
+    if (val == 98) { return "b"; }
+    if (val == 99) { return "c"; }
+    if (val == 100) { return "d"; }
+    if (val == 101) { return "e"; }
+    if (val == 102) { return "f"; }
+    if (val == 103) { return "g"; }
+    if (val == 104) { return "h"; }
+    if (val == 105) { return "i"; }
+    if (val == 106) { return "j"; }
+    if (val == 107) { return "k"; }
+    if (val == 108) { return "l"; }
+    if (val == 109) { return "m"; }
+    if (val == 110) { return "n"; }
+    if (val == 111) { return "o"; }
+    if (val == 112) { return "p"; }
+    if (val == 113) { return "q"; }
+    if (val == 114) { return "r"; }
+    if (val == 115) { return "s"; }
+    if (val == 116) { return "t"; }
+    if (val == 117) { return "u"; }
+    if (val == 118) { return "v"; }
+    if (val == 119) { return "w"; }
+    if (val == 120) { return "x"; }
+    if (val == 121) { return "y"; }
+    if (val == 122) { return "z"; }
+    if (val == 123) { return "{"; }
+    if (val == 124) { return "|"; }
+    if (val == 125) { return "}"; }
+    if (val == 126) { return "~"; }
+    return "?";
 }
 
+// ---------------------------------------------------------------------------
+// Substring extraction — builds result byte-by-byte using _byte_to_char
+// to avoid copy_bytes_raw with non-zero offsets (register clobbering on ARM64)
+// ---------------------------------------------------------------------------
 fn substr(s: str, start: i32) -> str {
     let slen: i32 = len(s);
     if (start >= slen) { return ""; }
     let count: i32 = slen - start;
     if (count <= 0) { return ""; }
-    let sbase: u64 = ptr(s);
-    let soff: u64 = i32_to_u64(start);
-    return copy_bytes_raw(sbase + soff, count);
+    // Use copy_bytes_raw only with offset 0 (safe)
+    if (start == 0) { return copy_bytes_raw(ptr(s), count); }
+    let result: str = "";
+    let i: i32 = 0;
+    while (i < count) {
+        result = result + _byte_to_char(byte_at(s, start + i));
+        i = i + 1;
+    }
+    return result;
 }
 
 fn substr_len(s: str, start: i32, count: i32) -> str {
@@ -118,9 +230,15 @@ fn substr_len(s: str, start: i32, count: i32) -> str {
     if (start >= slen) { return ""; }
     if (start + count > slen) { count = slen - start; }
     if (count <= 0) { return ""; }
-    let sbase: u64 = ptr(s);
-    let soff: u64 = i32_to_u64(start);
-    return copy_bytes_raw(sbase + soff, count);
+    // Use copy_bytes_raw only with offset 0 (safe)
+    if (start == 0) { return copy_bytes_raw(ptr(s), count); }
+    let result: str = "";
+    let i: i32 = 0;
+    while (i < count) {
+        result = result + _byte_to_char(byte_at(s, start + i));
+        i = i + 1;
+    }
+    return result;
 }
 
 // ---------------------------------------------------------------------------
