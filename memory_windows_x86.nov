@@ -23,9 +23,8 @@ fn make_buffer(size: i32) -> str {
 
 fn copy_bytes_raw(src: u64, length: i32) -> str {
     if (length <= 0) { return ""; }
-    let buf: str = "";
-    let j: i32 = 0;
-    while (j < length) { buf = buf + " "; j = j + 1; }
+    let buf: str = " ";
+    while (len(buf) < length) { buf = buf + buf; }
     let dest: u64 = ptr(buf);
     win_call("RtlMoveMemory", dest, src, length);
     return buf;
