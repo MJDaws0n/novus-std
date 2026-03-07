@@ -26,8 +26,10 @@ fn make_buffer(size: i32) -> str {
 // Returns 0 on success, fds stored in the buffer
 fn copy_bytes_raw(src: u64, length: i32) -> str {
     if (length <= 0) { return ""; }
-    let buf: str = " ";
-    while (len(buf) < length) { buf = buf + buf; }
+    let c64: str = "                                                                ";
+    let buf: str = "";
+    while (len(buf) + 64 <= length) { buf = buf + c64; }
+    while (len(buf) < length) { buf = buf + " "; }
     let ulen: u64 = i32_to_u64(length);
 
     // pipe() on Linux: pass pointer to 8-byte buffer for [rfd, wfd]
@@ -68,8 +70,10 @@ fn copy_bytes_raw(src: u64, length: i32) -> str {
 
 fn copy_bytes(src: u64, length: i32) -> str {
     if (length <= 0) { return ""; }
-    let buf: str = " ";
-    while (len(buf) < length) { buf = buf + buf; }
+    let c64: str = "                                                                ";
+    let buf: str = "";
+    while (len(buf) + 64 <= length) { buf = buf + c64; }
+    while (len(buf) < length) { buf = buf + " "; }
     let ulen: u64 = i32_to_u64(length);
 
     let pipebuf: str = "\0\0\0\0\0\0\0\0";

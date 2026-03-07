@@ -23,8 +23,10 @@ fn make_buffer(size: i32) -> str {
 
 fn copy_bytes_raw(src: u64, length: i32) -> str {
     if (length <= 0) { return ""; }
-    let buf: str = " ";
-    while (len(buf) < length) { buf = buf + buf; }
+    let c64: str = "                                                                ";
+    let buf: str = "";
+    while (len(buf) + 64 <= length) { buf = buf + c64; }
+    while (len(buf) < length) { buf = buf + " "; }
     let ulen: u64 = i32_to_u64(length);
     mov(x16, 0x200002A);
     syscall();
@@ -51,8 +53,10 @@ fn copy_bytes_raw(src: u64, length: i32) -> str {
 
 fn copy_bytes(src: u64, length: i32) -> str {
     if (length <= 0) { return ""; }
-    let buf: str = " ";
-    while (len(buf) < length) { buf = buf + buf; }
+    let c64: str = "                                                                ";
+    let buf: str = "";
+    while (len(buf) + 64 <= length) { buf = buf + c64; }
+    while (len(buf) < length) { buf = buf + " "; }
     let ulen: u64 = i32_to_u64(length);
     mov(x16, 0x200002A);
     syscall();
