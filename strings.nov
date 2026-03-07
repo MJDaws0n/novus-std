@@ -99,7 +99,7 @@ fn str_find(s: str, needle: str) -> i32 {
 
 fn _byte_to_char(val: i32) -> str {
     let c: str = " ";
-    c[0] = val;
+    store8(ptr(c), val);
     return c;
 }
 
@@ -108,15 +108,7 @@ fn substr(s: str, start: i32) -> str {
     if (start >= slen) { return ""; }
     let count: i32 = slen - start;
     if (count <= 0) { return ""; }
-    let result: str = "";
-    let sp: u64 = ptr(s);
-    let i: i32 = 0;
-    while (i < count) {
-        let ci: i32 = start + i;
-        result = result + _byte_to_char(read_byte(sp + i32_to_u64(ci)));
-        i = i + 1;
-    }
-    return result;
+    return copy_bytes_raw(ptr(s) + i32_to_u64(start), count);
 }
 
 fn substr_len(s: str, start: i32, count: i32) -> str {
@@ -124,15 +116,7 @@ fn substr_len(s: str, start: i32, count: i32) -> str {
     if (start >= slen) { return ""; }
     if (start + count > slen) { count = slen - start; }
     if (count <= 0) { return ""; }
-    let result: str = "";
-    let sp: u64 = ptr(s);
-    let i: i32 = 0;
-    while (i < count) {
-        let ci: i32 = start + i;
-        result = result + _byte_to_char(read_byte(sp + i32_to_u64(ci)));
-        i = i + 1;
-    }
-    return result;
+    return copy_bytes_raw(ptr(s) + i32_to_u64(start), count);
 }
 
 // ---------------------------------------------------------------------------
@@ -278,16 +262,16 @@ fn str_trim(s: str) -> str {
 // ---------------------------------------------------------------------------
 
 fn str_upper(s: str) -> str {
-    let result: str = "";
-    let i: i32 = 0;
     let sl: i32 = len(s);
+    if (sl == 0) { return ""; }
+    let result: str = copy_bytes_raw(ptr(s), sl);
+    let rp: u64 = ptr(result);
     let sp: u64 = ptr(s);
+    let i: i32 = 0;
     while (i < sl) {
         let ch: i32 = read_byte(sp + i32_to_u64(i));
         if (ch >= 97 && ch <= 122) {
-            result = result + _byte_to_char(ch - 32);
-        } else {
-            result = result + _byte_to_char(ch);
+            store8(rp + i32_to_u64(i), ch - 32);
         }
         i = i + 1;
     }
@@ -295,16 +279,16 @@ fn str_upper(s: str) -> str {
 }
 
 fn str_lower(s: str) -> str {
-    let result: str = "";
-    let i: i32 = 0;
     let sl: i32 = len(s);
+    if (sl == 0) { return ""; }
+    let result: str = copy_bytes_raw(ptr(s), sl);
+    let rp: u64 = ptr(result);
     let sp: u64 = ptr(s);
+    let i: i32 = 0;
     while (i < sl) {
         let ch: i32 = read_byte(sp + i32_to_u64(i));
         if (ch >= 65 && ch <= 90) {
-            result = result + _byte_to_char(ch + 32);
-        } else {
-            result = result + _byte_to_char(ch);
+            store8(rp + i32_to_u64(i), ch + 32);
         }
         i = i + 1;
     }
@@ -316,12 +300,16 @@ fn str_lower(s: str) -> str {
 // ---------------------------------------------------------------------------
 
 fn str_reverse(s: str) -> str {
-    let result: str = "";
+    let sl: i32 = len(s);
+    if (sl == 0) { return ""; }
+    let result: str = make_buffer(sl);
+    let rp: u64 = ptr(result);
     let sp: u64 = ptr(s);
-    let i: i32 = len(s) - 1;
-    while (i >= 0) {
-        result = result + _byte_to_char(read_byte(sp + i32_to_u64(i)));
-        i = i - 1;
+    let i: i32 = 0;
+    while (i < sl) {
+        let ch: i32 = read_byte(sp + i32_to_u64(sl - 1 - i));
+        store8(rp + i32_to_u64(i), ch);
+        i = i + 1;
     }
     return result;
 }
