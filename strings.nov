@@ -108,7 +108,9 @@ fn substr(s: str, start: i32) -> str {
     if (start >= slen) { return ""; }
     let count: i32 = slen - start;
     if (count <= 0) { return ""; }
-    return copy_bytes_raw(ptr(s) + i32_to_u64(start), count);
+    let sbase: u64 = ptr(s);
+    let soff: u64 = i32_to_u64(start);
+    return copy_bytes_raw(sbase + soff, count);
 }
 
 fn substr_len(s: str, start: i32, count: i32) -> str {
@@ -116,7 +118,9 @@ fn substr_len(s: str, start: i32, count: i32) -> str {
     if (start >= slen) { return ""; }
     if (start + count > slen) { count = slen - start; }
     if (count <= 0) { return ""; }
-    return copy_bytes_raw(ptr(s) + i32_to_u64(start), count);
+    let sbase: u64 = ptr(s);
+    let soff: u64 = i32_to_u64(start);
+    return copy_bytes_raw(sbase + soff, count);
 }
 
 // ---------------------------------------------------------------------------
