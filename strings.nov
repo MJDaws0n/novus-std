@@ -25,8 +25,11 @@ fn cstr_len(addr: u64) -> u64 {
 fn starts_with(s: str, p: str) -> bool {
     if (len(s) < len(p)) { return false; }
     let i: i32 = 0;
+    let sp: u64 = ptr(s);
+    let pp: u64 = ptr(p);
     while (i < len(p)) {
-        if (s[i] != p[i]) { return false; }
+        let off: u64 = i32_to_u64(i);
+        if (read_byte(sp + off) != read_byte(pp + off)) { return false; }
         i = i + 1;
     }
     return true;
@@ -37,10 +40,12 @@ fn ends_with(s: str, p: str) -> bool {
     let pl: i32 = len(p);
     if (sl < pl) { return false; }
     let off: i32 = sl - pl;
+    let sp: u64 = ptr(s);
+    let pp: u64 = ptr(p);
     let i: i32 = 0;
     while (i < pl) {
         let si: i32 = off + i;
-        if (s[si] != p[i]) { return false; }
+        if (read_byte(sp + i32_to_u64(si)) != read_byte(pp + i32_to_u64(i))) { return false; }
         i = i + 1;
     }
     return true;
@@ -52,13 +57,15 @@ fn str_contains(s: str, needle: str) -> bool {
     if (nl == 0) { return true; }
     if (sl < nl) { return false; }
     let limit: i32 = sl - nl + 1;
+    let sp: u64 = ptr(s);
+    let np: u64 = ptr(needle);
     let i: i32 = 0;
     while (i < limit) {
         let ok: bool = true;
         let j: i32 = 0;
         while (j < nl) {
             let ci: i32 = i + j;
-            if (s[ci] != needle[j]) { ok = false; j = nl; }
+            if (read_byte(sp + i32_to_u64(ci)) != read_byte(np + i32_to_u64(j))) { ok = false; j = nl; }
             else { j = j + 1; }
         }
         if (ok) { return true; }
@@ -73,13 +80,15 @@ fn str_find(s: str, needle: str) -> i32 {
     if (nl == 0) { return 0; }
     if (sl < nl) { return -1; }
     let limit: i32 = sl - nl + 1;
+    let sp: u64 = ptr(s);
+    let np: u64 = ptr(needle);
     let i: i32 = 0;
     while (i < limit) {
         let ok: bool = true;
         let j: i32 = 0;
         while (j < nl) {
             let ci: i32 = i + j;
-            if (s[ci] != needle[j]) { ok = false; j = nl; }
+            if (read_byte(sp + i32_to_u64(ci)) != read_byte(np + i32_to_u64(j))) { ok = false; j = nl; }
             else { j = j + 1; }
         }
         if (ok) { return i; }
@@ -88,11 +97,23 @@ fn str_find(s: str, needle: str) -> i32 {
     return -1;
 }
 
+fn _byte_to_char(val: i32) -> str {
+    let c: str = " ";
+    c[0] = val;
+    return c;
+}
+
 fn substr(s: str, start: i32) -> str {
+    let slen: i32 = len(s);
+    if (start >= slen) { return ""; }
+    let count: i32 = slen - start;
+    if (count <= 0) { return ""; }
     let result: str = "";
-    let i: i32 = start;
-    while (i < len(s)) {
-        result = result + s[i];
+    let sp: u64 = ptr(s);
+    let i: i32 = 0;
+    while (i < count) {
+        let ci: i32 = start + i;
+        result = result + _byte_to_char(read_byte(sp + i32_to_u64(ci)));
         i = i + 1;
     }
     return result;
@@ -104,10 +125,11 @@ fn substr_len(s: str, start: i32, count: i32) -> str {
     if (start + count > slen) { count = slen - start; }
     if (count <= 0) { return ""; }
     let result: str = "";
+    let sp: u64 = ptr(s);
     let i: i32 = 0;
     while (i < count) {
         let ci: i32 = start + i;
-        result = result + s[ci];
+        result = result + _byte_to_char(read_byte(sp + i32_to_u64(ci)));
         i = i + 1;
     }
     return result;
@@ -122,13 +144,15 @@ fn str_last_find(s: str, needle: str) -> i32 {
     let nl: i32 = len(needle);
     if (nl == 0) { return sl; }
     if (sl < nl) { return -1; }
+    let sp: u64 = ptr(s);
+    let np: u64 = ptr(needle);
     let i: i32 = sl - nl;
     while (i >= 0) {
         let ok: bool = true;
         let j: i32 = 0;
         while (j < nl) {
             let ci: i32 = i + j;
-            if (s[ci] != needle[j]) { ok = false; j = nl; }
+            if (read_byte(sp + i32_to_u64(ci)) != read_byte(np + i32_to_u64(j))) { ok = false; j = nl; }
             else { j = j + 1; }
         }
         if (ok) { return i; }
@@ -147,6 +171,8 @@ fn str_count(s: str, needle: str) -> i32 {
     if (nl == 0) { return 0; }
     if (sl < nl) { return 0; }
     let count: i32 = 0;
+    let sp: u64 = ptr(s);
+    let np: u64 = ptr(needle);
     let i: i32 = 0;
     let limit: i32 = sl - nl + 1;
     while (i < limit) {
@@ -154,7 +180,7 @@ fn str_count(s: str, needle: str) -> i32 {
         let j: i32 = 0;
         while (j < nl) {
             let ci: i32 = i + j;
-            if (s[ci] != needle[j]) { ok = false; j = nl; }
+            if (read_byte(sp + i32_to_u64(ci)) != read_byte(np + i32_to_u64(j))) { ok = false; j = nl; }
             else { j = j + 1; }
         }
         if (ok) {
@@ -175,6 +201,8 @@ fn str_replace(s: str, old: str, new_val: str) -> str {
     let ol: i32 = len(old);
     if (ol == 0) { return s; }
     let sl: i32 = len(s);
+    let sp: u64 = ptr(s);
+    let op: u64 = ptr(old);
     let result: str = "";
     let i: i32 = 0;
     while (i < sl) {
@@ -184,7 +212,7 @@ fn str_replace(s: str, old: str, new_val: str) -> str {
             let j: i32 = 0;
             while (j < ol) {
                 let ci: i32 = i + j;
-                if (s[ci] != old[j]) { found = false; j = ol; }
+                if (read_byte(sp + i32_to_u64(ci)) != read_byte(op + i32_to_u64(j))) { found = false; j = ol; }
                 else { j = j + 1; }
             }
         }
@@ -192,7 +220,7 @@ fn str_replace(s: str, old: str, new_val: str) -> str {
             result = result + new_val;
             i = i + ol;
         } else {
-            result = result + s[i];
+            result = result + _byte_to_char(read_byte(sp + i32_to_u64(i)));
             i = i + 1;
         }
     }
@@ -213,9 +241,11 @@ fn str_replace_first(s: str, old: str, new_val: str) -> str {
 
 fn str_trim_left(s: str) -> str {
     let sl: i32 = len(s);
+    let sp: u64 = ptr(s);
     let i: i32 = 0;
     while (i < sl) {
-        if (s[i] == ' ' || s[i] == '\t' || s[i] == '\n' || s[i] == '\r') {
+        let ch: i32 = read_byte(sp + i32_to_u64(i));
+        if (ch == 32 || ch == 9 || ch == 10 || ch == 13) {
             i = i + 1;
         } else {
             break;
@@ -226,9 +256,11 @@ fn str_trim_left(s: str) -> str {
 
 fn str_trim_right(s: str) -> str {
     let sl: i32 = len(s);
+    let sp: u64 = ptr(s);
     let i: i32 = sl - 1;
     while (i >= 0) {
-        if (s[i] == ' ' || s[i] == '\t' || s[i] == '\n' || s[i] == '\r') {
+        let ch: i32 = read_byte(sp + i32_to_u64(i));
+        if (ch == 32 || ch == 9 || ch == 10 || ch == 13) {
             i = i - 1;
         } else {
             break;
@@ -249,14 +281,13 @@ fn str_upper(s: str) -> str {
     let result: str = "";
     let i: i32 = 0;
     let sl: i32 = len(s);
+    let sp: u64 = ptr(s);
     while (i < sl) {
-        let ch: i32 = s[i] & 255;
+        let ch: i32 = read_byte(sp + i32_to_u64(i));
         if (ch >= 97 && ch <= 122) {
-            let tmp: str = " ";
-            tmp[0] = ch - 32;
-            result = result + tmp;
+            result = result + _byte_to_char(ch - 32);
         } else {
-            result = result + s[i];
+            result = result + _byte_to_char(ch);
         }
         i = i + 1;
     }
@@ -267,14 +298,13 @@ fn str_lower(s: str) -> str {
     let result: str = "";
     let i: i32 = 0;
     let sl: i32 = len(s);
+    let sp: u64 = ptr(s);
     while (i < sl) {
-        let ch: i32 = s[i] & 255;
+        let ch: i32 = read_byte(sp + i32_to_u64(i));
         if (ch >= 65 && ch <= 90) {
-            let tmp: str = " ";
-            tmp[0] = ch + 32;
-            result = result + tmp;
+            result = result + _byte_to_char(ch + 32);
         } else {
-            result = result + s[i];
+            result = result + _byte_to_char(ch);
         }
         i = i + 1;
     }
@@ -287,9 +317,10 @@ fn str_lower(s: str) -> str {
 
 fn str_reverse(s: str) -> str {
     let result: str = "";
+    let sp: u64 = ptr(s);
     let i: i32 = len(s) - 1;
     while (i >= 0) {
-        result = result + s[i];
+        result = result + _byte_to_char(read_byte(sp + i32_to_u64(i)));
         i = i - 1;
     }
     return result;
@@ -366,9 +397,12 @@ fn str_equals(a: str, b: str) -> bool {
     let al: i32 = len(a);
     let bl: i32 = len(b);
     if (al != bl) { return false; }
+    let ap: u64 = ptr(a);
+    let bp: u64 = ptr(b);
     let i: i32 = 0;
     while (i < al) {
-        if (a[i] != b[i]) { return false; }
+        let off: u64 = i32_to_u64(i);
+        if (read_byte(ap + off) != read_byte(bp + off)) { return false; }
         i = i + 1;
     }
     return true;
@@ -401,9 +435,11 @@ fn str_is_empty(s: str) -> bool {
 
 fn str_is_blank(s: str) -> bool {
     let sl: i32 = len(s);
+    let sp: u64 = ptr(s);
     let i: i32 = 0;
     while (i < sl) {
-        if (s[i] != ' ' && s[i] != '\t' && s[i] != '\n' && s[i] != '\r') {
+        let ch: i32 = read_byte(sp + i32_to_u64(i));
+        if (ch != 32 && ch != 9 && ch != 10 && ch != 13) {
             return false;
         }
         i = i + 1;
@@ -442,9 +478,10 @@ fn int_to_hex(n: i32) -> str {
     }
     let result: str = "";
     if (n < 0) { result = "-"; }
+    let dp: u64 = ptr(digits);
     let i: i32 = len(digits) - 1;
     while (i >= 0) {
-        result = result + digits[i];
+        result = result + _byte_to_char(read_byte(dp + i32_to_u64(i)));
         i = i - 1;
     }
     return result;
