@@ -12,99 +12,30 @@ import linux_amd64;
 fn make_buffer(size: i32) -> str {
     if (size <= 0) { return ""; }
     let buf: str = "        ";
+    buf = buf + buf;
     while (len(buf) < size) {
         buf = buf + buf;
     }
     if (len(buf) > size) {
-        let pa: u64 = ptr(buf);
-        return copy_bytes_raw(pa, size);
+        buf[size] = 0;
     }
     return buf;
 }
 
-// Linux pipe(int pipefd[2]) - syscall 22
-// Returns 0 on success, fds stored in the buffer
+// Copy bytes from raw address to a new string (no pipe, byte-by-byte)
 fn copy_bytes_raw(src: u64, length: i32) -> str {
     if (length <= 0) { return ""; }
-    let c64: str = "                                                                ";
-    let buf: str = "";
-    while (len(buf) + 64 <= length) { buf = buf + c64; }
-    while (len(buf) < length) { buf = buf + " "; }
-    let ulen: u64 = i32_to_u64(length);
-
-    // pipe() on Linux: pass pointer to 8-byte buffer for [rfd, wfd]
-    let pipebuf: str = "\0\0\0\0\0\0\0\0";
-    mov(rax, 22);      // SYS_pipe
-    mov(rdi, pipebuf);
-    syscall();
-    let pb: u64 = ptr(pipebuf);
-    let rfd: i32 = load32(pb);
-    let wfd: i32 = load32(pb + 4);
-
-    // write src data to pipe
-    mov(rax, 1);       // SYS_write
-    mov(rdi, wfd);
-    mov(rsi, src);
-    mov(rdx, ulen);
-    syscall();
-
-    // close write end
-    mov(rax, 3);       // SYS_close
-    mov(rdi, wfd);
-    syscall();
-
-    // read from pipe into buf
-    mov(rax, 0);       // SYS_read
-    mov(rdi, rfd);
-    mov(rsi, buf);
-    mov(rdx, ulen);
-    syscall();
-
-    // close read end
-    mov(rax, 3);       // SYS_close
-    mov(rdi, rfd);
-    syscall();
-
+    let buf: str = make_buffer(length);
+    let i: i32 = 0;
+    while (i < length) {
+        buf[i] = read_byte(src + i32_to_u64(i));
+        i = i + 1;
+    }
     return buf;
 }
 
 fn copy_bytes(src: u64, length: i32) -> str {
-    if (length <= 0) { return ""; }
-    let c64: str = "                                                                ";
-    let buf: str = "";
-    while (len(buf) + 64 <= length) { buf = buf + c64; }
-    while (len(buf) < length) { buf = buf + " "; }
-    let ulen: u64 = i32_to_u64(length);
-
-    let pipebuf: str = "\0\0\0\0\0\0\0\0";
-    mov(rax, 22);      // SYS_pipe
-    mov(rdi, pipebuf);
-    syscall();
-    let pb: u64 = ptr(pipebuf);
-    let rfd: i32 = load32(pb);
-    let wfd: i32 = load32(pb + 4);
-
-    mov(rax, 1);       // SYS_write
-    mov(rdi, wfd);
-    mov(rsi, src);
-    mov(rdx, ulen);
-    syscall();
-
-    mov(rax, 3);       // SYS_close
-    mov(rdi, wfd);
-    syscall();
-
-    mov(rax, 0);       // SYS_read
-    mov(rdi, rfd);
-    mov(rsi, buf);
-    mov(rdx, ulen);
-    syscall();
-
-    mov(rax, 3);       // SYS_close
-    mov(rdi, rfd);
-    syscall();
-
-    return buf;
+    return copy_bytes_raw(src, length);
 }
 
 fn cstr_to_str(addr: u64) -> str {
@@ -153,6 +84,40 @@ fn store8(addr: u64, val: i32) -> void {
     syscall();
 
     mov(rax, 3);       // SYS_close
+    mov(rdi, rfd);
+    syscall();
+}
+
+// Copy N bytes from src address to dst address using a single pipe
+fn pipe_copy(src_addr: u64, dst_addr: u64, count: i32) -> void {
+    if (count <= 0) { return; }
+    let ucount: u64 = i32_to_u64(count);
+
+    let pipebuf: str = "\0\0\0\0\0\0\0\0";
+    mov(rax, 22);
+    mov(rdi, pipebuf);
+    syscall();
+    let pb: u64 = ptr(pipebuf);
+    let rfd: i32 = load32(pb);
+    let wfd: i32 = load32(pb + 4);
+
+    mov(rax, 1);
+    mov(rdi, wfd);
+    mov(rsi, src_addr);
+    mov(rdx, ucount);
+    syscall();
+
+    mov(rax, 3);
+    mov(rdi, wfd);
+    syscall();
+
+    mov(rax, 0);
+    mov(rdi, rfd);
+    mov(rsi, dst_addr);
+    mov(rdx, ucount);
+    syscall();
+
+    mov(rax, 3);
     mov(rdi, rfd);
     syscall();
 }
