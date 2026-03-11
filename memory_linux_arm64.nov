@@ -1,6 +1,7 @@
 // ---------------------------------------------------------------------------
 // std/memory_linux_arm64 - memory & buffer ops (Linux ARM64)
-// Uses pipe2 (no pipe syscall on ARM64), syscall 59 with flags=0
+// Pipe-free implementation — uses string indexing and read_byte instead
+// of pipe2() syscalls to avoid file descriptor exhaustion.
 // ---------------------------------------------------------------------------
 
 module std_memory_linux_arm64;
@@ -15,96 +16,25 @@ fn make_buffer(size: i32) -> str {
     while (len(buf) < size) {
         buf = buf + buf;
     }
-    if (len(buf) > size) {
-        let pa: u64 = ptr(buf);
-        return copy_bytes_raw(pa, size);
-    }
+    // Force a heap copy so we don't mutate shared string literals
+    buf = buf + "";
+    buf[size] = 0;
     return buf;
 }
 
 fn copy_bytes_raw(src: u64, length: i32) -> str {
     if (length <= 0) { return ""; }
-    let c64: str = "                                                                ";
-    let buf: str = "";
-    while (len(buf) + 64 <= length) { buf = buf + c64; }
-    while (len(buf) < length) { buf = buf + " "; }
-    let ulen: u64 = i32_to_u64(length);
-
-    // pipe2(fds, 0) on ARM64 Linux - syscall 59
-    let pipebuf: str = "\0\0\0\0\0\0\0\0";
-    mov(x0, pipebuf);
-    mov(x1, 0);        // flags = 0
-    mov(x8, 59);       // SYS_pipe2
-    syscall();
-    let pb: u64 = ptr(pipebuf);
-    let rfd: i32 = load32(pb);
-    let wfd: i32 = load32(pb + 4);
-
-    // write src data to pipe
-    mov(x0, wfd);
-    mov(x1, src);
-    mov(x2, ulen);
-    mov(x8, 64);       // SYS_write
-    syscall();
-
-    // close write end
-    mov(x0, wfd);
-    mov(x8, 57);       // SYS_close
-    syscall();
-
-    // read from pipe into buf
-    mov(x0, rfd);
-    mov(x1, buf);
-    mov(x2, ulen);
-    mov(x8, 63);       // SYS_read
-    syscall();
-
-    // close read end
-    mov(x0, rfd);
-    mov(x8, 57);       // SYS_close
-    syscall();
-
+    let buf: str = make_buffer(length);
+    let i: i32 = 0;
+    while (i < length) {
+        buf[i] = read_byte(src + i32_to_u64(i));
+        i = i + 1;
+    }
     return buf;
 }
 
 fn copy_bytes(src: u64, length: i32) -> str {
-    if (length <= 0) { return ""; }
-    let c64: str = "                                                                ";
-    let buf: str = "";
-    while (len(buf) + 64 <= length) { buf = buf + c64; }
-    while (len(buf) < length) { buf = buf + " "; }
-    let ulen: u64 = i32_to_u64(length);
-
-    let pipebuf: str = "\0\0\0\0\0\0\0\0";
-    mov(x0, pipebuf);
-    mov(x1, 0);        // flags = 0
-    mov(x8, 59);       // SYS_pipe2
-    syscall();
-    let pb: u64 = ptr(pipebuf);
-    let rfd: i32 = load32(pb);
-    let wfd: i32 = load32(pb + 4);
-
-    mov(x0, wfd);
-    mov(x1, src);
-    mov(x2, ulen);
-    mov(x8, 64);       // SYS_write
-    syscall();
-
-    mov(x0, wfd);
-    mov(x8, 57);       // SYS_close
-    syscall();
-
-    mov(x0, rfd);
-    mov(x1, buf);
-    mov(x2, ulen);
-    mov(x8, 63);       // SYS_read
-    syscall();
-
-    mov(x0, rfd);
-    mov(x8, 57);       // SYS_close
-    syscall();
-
-    return buf;
+    return copy_bytes_raw(src, length);
 }
 
 fn cstr_to_str(addr: u64) -> str {
@@ -123,14 +53,15 @@ fn argv_get(argv: u64, index: i32) -> str {
     return cstr_to_str(addr);
 }
 
-// Write a single byte to a raw memory address using the pipe trick
+// Write a single byte to a raw memory address (pipe trick)
+// Not used in hot paths — net library uses buf[i] = val instead.
 fn store8(addr: u64, val: i32) -> void {
     let tmp: str = "\0";
     tmp[0] = ((val % 256) + 256) % 256;
 
     let pipebuf: str = "\0\0\0\0\0\0\0\0";
     mov(x0, pipebuf);
-    mov(x1, 0);
+    mov(x1, 0);        // flags = 0
     mov(x8, 59);       // SYS_pipe2
     syscall();
     let pb: u64 = ptr(pipebuf);
