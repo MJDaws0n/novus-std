@@ -211,6 +211,7 @@ fn _byte_to_char(val: i32) -> str {
 // ---------------------------------------------------------------------------
 fn substr(s: str, start: i32) -> str {
     let slen: i32 = len(s);
+    if (start < 0) { return ""; }
     if (start >= slen) { return ""; }
     let count: i32 = slen - start;
     if (count <= 0) { return ""; }
@@ -219,8 +220,12 @@ fn substr(s: str, start: i32) -> str {
 
 fn substr_len(s: str, start: i32, count: i32) -> str {
     let slen: i32 = len(s);
+    if (start < 0) { return ""; }
+    if (count <= 0) { return ""; }
     if (start >= slen) { return ""; }
-    if (start + count > slen) { count = slen - start; }
+    if (start + count > slen) {
+        count = slen - start;
+    }
     if (count <= 0) { return ""; }
     return copy_bytes_raw(ptr(s) + i32_to_u64(start), count);
 }
