@@ -34,6 +34,36 @@ fn array_len_u64(arr: []u64) -> i32 {
     return load32(hdr + 8);
 }
 
+fn array_len_str(arr: []str) -> i32 {
+    mov(rdi, arr);
+    let hdr: u64 = getreg(rdi);
+    return load32(hdr + 8);
+}
+
+fn array_len_i64(arr: []i64) -> i32 {
+    mov(rdi, arr);
+    let hdr: u64 = getreg(rdi);
+    return load32(hdr + 8);
+}
+
+fn array_data_ptr_i32(arr: []i32) -> i64 {
+    mov(rdi, arr);
+    let hdr: u64 = getreg(rdi);
+    return load64(hdr);
+}
+
+fn array_data_ptr_str(arr: []str) -> i64 {
+    mov(rdi, arr);
+    let hdr: u64 = getreg(rdi);
+    return load64(hdr);
+}
+
+fn array_data_ptr_i64(arr: []i64) -> i64 {
+    mov(rdi, arr);
+    let hdr: u64 = getreg(rdi);
+    return load64(hdr);
+}
+
 fn print(msg: str) -> void {
     msg = msg + "\n";
     mov(rax, 1);       // SYS_write
