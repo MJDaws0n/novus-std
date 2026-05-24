@@ -280,3 +280,50 @@ fn str_to_i64(s: str) -> i64 {
 fn to_u8(v: i32) -> i32 {
     return ((v % 256) + 256) % 256;
 }
+
+// ---------------------------------------------------------------------------
+// Array contains helpers
+// ---------------------------------------------------------------------------
+
+fn array_contains_i32(arr: []i32, needle: i32) -> bool {
+    let n: i32 = array_len(arr);
+    let base: i64 = array_data_ptr_i32(arr);
+    let i: i32 = 0;
+    while (i < n) {
+        let val: i32 = load32(i64_to_u64(base) + i32_to_u64(i) * 4);
+        if (val == needle) {
+            return true;
+        }
+        i = i + 1;
+    }
+    return false;
+}
+
+fn array_contains_i64(arr: []i64, needle: i64) -> bool {
+    let n: i32 = array_len_i64(arr);
+    let base: i64 = array_data_ptr_i64(arr);
+    let i: i32 = 0;
+    while (i < n) {
+        let val: i64 = load64(i64_to_u64(base) + i32_to_u64(i) * 8);
+        if (val == needle) {
+            return true;
+        }
+        i = i + 1;
+    }
+    return false;
+}
+
+fn array_contains_str(arr: []str, needle: str) -> bool {
+    let n: i32 = array_len_str(arr);
+    let base: i64 = array_data_ptr_str(arr);
+    let i: i32 = 0;
+    while (i < n) {
+        let addr: u64 = i64_to_u64(load64(i64_to_u64(base) + i32_to_u64(i) * 8));
+        let s: str = cstr_to_str(addr);
+        if (str_equals(s, needle)) {
+            return true;
+        }
+        i = i + 1;
+    }
+    return false;
+}
