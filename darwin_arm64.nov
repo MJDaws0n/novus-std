@@ -174,28 +174,114 @@ fn spawn_execve(path: str, argv: []u64) -> i32 {
 
 // ---------------------------------------------------------------------------
 // User info: get_home_dir / get_username
-// Reads /etc/passwd and matches on current UID (via SYS_getuid)
-// macOS syscall numbers have 0x2000000 base offset
+// On macOS, /etc/passwd often omits normal GUI users, so prefer `id -P`.
+// Falls back to /etc/passwd when command execution fails.
 // ---------------------------------------------------------------------------
 
+fn _read_macos_user_record() -> str {
+    let pipebuf: str = "\0\0\0\0\0\0\0\0";
+    mov(x16, 0x200002A);   // SYS_pipe
+    syscall();
+    let rfd: i32 = u64_to_i32(getreg(x0));
+    let wfd: i32 = u64_to_i32(getreg(x1));
+    if (rfd < 0 || wfd < 0) { return ""; }
+
+    let pid: i32 = fork();
+    if (pid == 0) {
+        mov(x0, rfd);
+        mov(x16, 0x2000000 + 6);   // SYS_close
+        syscall();
+
+        mov(x0, wfd);
+        mov(x1, 1);
+        mov(x16, 0x2000000 + 90);  // SYS_dup2
+        syscall();
+
+        mov(x0, wfd);
+        mov(x16, 0x2000000 + 6);   // SYS_close
+        syscall();
+
+        let path: str = "/usr/bin/id\0";
+        let flag: str = "-P\0";
+        let argv: []u64 = [ptr(path), ptr(flag), 0];
+        execve_raw(path, argv);
+        exit(1);
+        return "";
+    }
+
+    mov(x0, wfd);
+    mov(x16, 0x2000000 + 6);   // SYS_close
+    syscall();
+
+    if (pid < 0) {
+        mov(x0, rfd);
+        mov(x16, 0x2000000 + 6);   // SYS_close
+        syscall();
+        return "";
+    }
+
+    let buf: str = "";
+    let k: i32 = 0;
+    while (k < 512) { buf = buf + " "; k = k + 1; }
+    mov(x0, rfd);
+    mov(x1, buf);
+    mov(x2, 512);
+    mov(x16, 0x2000000 + 3);   // SYS_read
+    syscall();
+    let nread: i32 = u64_to_i32(getreg(x0));
+
+    mov(x0, rfd);
+    mov(x16, 0x2000000 + 6);   // SYS_close
+    syscall();
+
+    if (nread <= 0) { return ""; }
+    let line: str = substr_len(buf, 0, nread);
+    let newline_at: i32 = str_find(line, "\n");
+    if (newline_at >= 0) {
+        return substr_len(line, 0, newline_at);
+    }
+    return line;
+}
+
+fn _get_macos_user_record_field(target_field: i32) -> str {
+    let record: str = _read_macos_user_record();
+    if (len(record) == 0) { return ""; }
+    let field: i32 = 0;
+    let field_start: i32 = 0;
+    let record_len: i32 = len(record);
+    let i: i32 = 0;
+    while (i <= record_len) {
+        if (i == record_len || record[i] == ':') {
+            if (field == target_field) {
+                return substr_len(record, field_start, i - field_start);
+            }
+            field = field + 1;
+            field_start = i + 1;
+        }
+        i = i + 1;
+    }
+    return "";
+}
+
 fn get_home_dir() -> str {
-    // Get current UID
+    let home: str = _get_macos_user_record_field(8);
+    if (len(home) > 0) { return home; }
+
+    // Fallback to /etc/passwd for environments where `id -P` is unavailable.
     mov(x16, 0x2000000 + 24);  // SYS_getuid
     syscall();
     let uid: i32 = u64_to_i32(getreg(x0));
     let uid_str: str = i32_to_str(uid);
 
-    // Open /etc/passwd
     let path: str = "/etc/passwd\0";
     mov(x0, path);
-    mov(x1, 0);        // O_RDONLY
+    mov(x1, 0);
     mov(x2, 0);
     mov(x16, 0x2000000 + 5);   // SYS_open
     syscall();
     let fd: i32 = u64_to_i32(getreg(x0));
     if (fd < 0) { return ""; }
 
-    // Read file contents
     let buf: str = "";
     let k: i32 = 0;
     while (k < 4096) { buf = buf + " "; k = k + 1; }
@@ -206,14 +292,12 @@ fn get_home_dir() -> str {
     syscall();
     let nread: i32 = u64_to_i32(getreg(x0));
 
-    // Close file
     mov(x0, fd);
     mov(x16, 0x2000000 + 6);   // SYS_close
     syscall();
 
     if (nread <= 0) { return ""; }
 
-    // Parse /etc/passwd: each line is username:x:uid:gid:gecos:home:shell
     let i: i32 = 0;
     while (i < nread) {
         let line_start: i32 = i;
@@ -248,23 +332,23 @@ fn get_home_dir() -> str {
 }
 
 fn get_username() -> str {
-    // Get current UID
+    let username: str = _get_macos_user_record_field(0);
+    if (len(username) > 0) { return username; }
+
     mov(x16, 0x2000000 + 24);  // SYS_getuid
     syscall();
     let uid: i32 = u64_to_i32(getreg(x0));
     let uid_str: str = i32_to_str(uid);
 
-    // Open /etc/passwd
     let path: str = "/etc/passwd\0";
     mov(x0, path);
-    mov(x1, 0);        // O_RDONLY
+    mov(x1, 0);
     mov(x2, 0);
     mov(x16, 0x2000000 + 5);   // SYS_open
     syscall();
     let fd: i32 = u64_to_i32(getreg(x0));
     if (fd < 0) { return ""; }
 
-    // Read file contents
     let buf: str = "";
     let k: i32 = 0;
     while (k < 4096) { buf = buf + " "; k = k + 1; }
@@ -275,14 +359,12 @@ fn get_username() -> str {
     syscall();
     let nread: i32 = u64_to_i32(getreg(x0));
 
-    // Close file
     mov(x0, fd);
     mov(x16, 0x2000000 + 6);   // SYS_close
     syscall();
 
     if (nread <= 0) { return ""; }
 
-    // Parse /etc/passwd
     let i: i32 = 0;
     while (i < nread) {
         let line_start: i32 = i;
