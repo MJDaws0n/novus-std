@@ -174,3 +174,149 @@ fn spawn_execve(path: str, argv: []u64) -> i32 {
     }
     return pid;
 }
+
+// ---------------------------------------------------------------------------
+// User info: get_home_dir / get_username
+// Reads /etc/passwd and matches on current UID (via SYS_getuid)
+// ARM64 Linux has no SYS_open; uses SYS_openat with AT_FDCWD
+// ---------------------------------------------------------------------------
+
+fn get_home_dir() -> str {
+    // Get current UID
+    mov(x8, 174);      // SYS_getuid
+    syscall();
+    let uid: i32 = u64_to_i32(getreg(x0));
+    let uid_str: str = i32_to_str(uid);
+
+    // Open /etc/passwd using openat(AT_FDCWD, path, O_RDONLY)
+    let path: str = "/etc/passwd\0";
+    mov(x0, -100);     // AT_FDCWD
+    mov(x1, path);
+    mov(x2, 0);        // O_RDONLY
+    mov(x3, 0);
+    mov(x8, 56);       // SYS_openat
+    syscall();
+    let fd: i32 = u64_to_i32(getreg(x0));
+    if (fd < 0) { return ""; }
+
+    // Read file contents
+    let buf: str = "";
+    let k: i32 = 0;
+    while (k < 4096) { buf = buf + " "; k = k + 1; }
+    mov(x0, fd);
+    mov(x1, buf);
+    mov(x2, 4096);
+    mov(x8, 63);       // SYS_read
+    syscall();
+    let nread: i32 = u64_to_i32(getreg(x0));
+
+    // Close file
+    mov(x0, fd);
+    mov(x8, 57);       // SYS_close
+    syscall();
+
+    if (nread <= 0) { return ""; }
+
+    // Parse /etc/passwd: each line is username:x:uid:gid:gecos:home:shell
+    let i: i32 = 0;
+    while (i < nread) {
+        let line_start: i32 = i;
+        while (i < nread && buf[i] != '\n') { i = i + 1; }
+        let line: str = substr_len(buf, line_start, i - line_start);
+        i = i + 1;
+
+        let field: i32 = 0;
+        let field_start: i32 = 0;
+        let line_len: i32 = len(line);
+        let found_uid: str = "";
+        let found_home: str = "";
+        let j: i32 = 0;
+        while (j <= line_len) {
+            if (j == line_len || line[j] == ':') {
+                if (field == 2) {
+                    found_uid = substr_len(line, field_start, j - field_start);
+                }
+                if (field == 5) {
+                    found_home = substr_len(line, field_start, j - field_start);
+                }
+                field = field + 1;
+                field_start = j + 1;
+            }
+            j = j + 1;
+        }
+        if (str_equals(found_uid, uid_str)) {
+            return found_home;
+        }
+    }
+    return "";
+}
+
+fn get_username() -> str {
+    // Get current UID
+    mov(x8, 174);      // SYS_getuid
+    syscall();
+    let uid: i32 = u64_to_i32(getreg(x0));
+    let uid_str: str = i32_to_str(uid);
+
+    // Open /etc/passwd using openat(AT_FDCWD, path, O_RDONLY)
+    let path: str = "/etc/passwd\0";
+    mov(x0, -100);     // AT_FDCWD
+    mov(x1, path);
+    mov(x2, 0);        // O_RDONLY
+    mov(x3, 0);
+    mov(x8, 56);       // SYS_openat
+    syscall();
+    let fd: i32 = u64_to_i32(getreg(x0));
+    if (fd < 0) { return ""; }
+
+    // Read file contents
+    let buf: str = "";
+    let k: i32 = 0;
+    while (k < 4096) { buf = buf + " "; k = k + 1; }
+    mov(x0, fd);
+    mov(x1, buf);
+    mov(x2, 4096);
+    mov(x8, 63);       // SYS_read
+    syscall();
+    let nread: i32 = u64_to_i32(getreg(x0));
+
+    // Close file
+    mov(x0, fd);
+    mov(x8, 57);       // SYS_close
+    syscall();
+
+    if (nread <= 0) { return ""; }
+
+    // Parse /etc/passwd
+    let i: i32 = 0;
+    while (i < nread) {
+        let line_start: i32 = i;
+        while (i < nread && buf[i] != '\n') { i = i + 1; }
+        let line: str = substr_len(buf, line_start, i - line_start);
+        i = i + 1;
+
+        let field: i32 = 0;
+        let field_start: i32 = 0;
+        let line_len: i32 = len(line);
+        let found_uid: str = "";
+        let found_user: str = "";
+        let j: i32 = 0;
+        while (j <= line_len) {
+            if (j == line_len || line[j] == ':') {
+                if (field == 0) {
+                    found_user = substr_len(line, field_start, j - field_start);
+                }
+                if (field == 2) {
+                    found_uid = substr_len(line, field_start, j - field_start);
+                }
+                field = field + 1;
+                field_start = j + 1;
+            }
+            j = j + 1;
+        }
+        if (str_equals(found_uid, uid_str)) {
+            return found_user;
+        }
+    }
+    return "";
+}
