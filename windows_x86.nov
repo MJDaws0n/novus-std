@@ -173,3 +173,30 @@ fn spawn_execve(path: str, argv: []u64) -> i32 {
     }
     return spawn_process_wait(cmd);
 }
+
+// ---------------------------------------------------------------------------
+// User info: get_home_dir / get_username
+// Uses GetEnvironmentVariableA to read USERPROFILE and USERNAME
+// ---------------------------------------------------------------------------
+
+fn get_home_dir() -> str {
+    let buf: str = "";
+    let k: i32 = 0;
+    while (k < 260) { buf = buf + " "; k = k + 1; }
+    let var_name: str = "USERPROFILE\0";
+    win_call("GetEnvironmentVariableA", var_name, buf, 260);
+    let nread: i32 = u64_to_i32(getreg(eax));
+    if (nread <= 0) { return ""; }
+    return substr_len(buf, 0, nread);
+}
+
+fn get_username() -> str {
+    let buf: str = "";
+    let k: i32 = 0;
+    while (k < 260) { buf = buf + " "; k = k + 1; }
+    let var_name: str = "USERNAME\0";
+    win_call("GetEnvironmentVariableA", var_name, buf, 260);
+    let nread: i32 = u64_to_i32(getreg(eax));
+    if (nread <= 0) { return ""; }
+    return substr_len(buf, 0, nread);
+}
