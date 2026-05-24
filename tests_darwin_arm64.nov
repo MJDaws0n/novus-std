@@ -186,6 +186,11 @@ fn main(argc: i32, argv: u64) -> i32 {
     fails = fails + assert_eq_str("str_pad_left", str_pad_left("42", 5, "0"), "00042");
     fails = fails + assert_eq_str("str_pad_right", str_pad_right("42", 5, "0"), "42000");
 
+    // ── User Info (darwin-specific) ──
+    print_raw("\n--- User Info ---\n");
+    fails = fails + assert_gt_i32("get_username non-empty", len(get_username()), 0);
+    fails = fails + assert_gt_i32("get_home_dir non-empty", len(get_home_dir()), 0);
+
     // ── Summary ──
     print_raw("\n");
     if (fails > 0) {
