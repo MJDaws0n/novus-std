@@ -1,79 +1,79 @@
 // ---------------------------------------------------------------------------
-// std/windows_amd64 - Windows x86-64 platform layer
-// Uses win_call() for Windows API calls + getreg(rax) for return values.
+// std/windows_x86 - Windows x86 (32-bit) platform layer
+// Uses win_call() for Windows API calls + getreg(eax) for return values.
 // ---------------------------------------------------------------------------
 
-module std_windows_amd64;
+module std_windows_x86;
 
-import core;
+import ../../core/core;
 
 fn i32_to_u64(val: i32) -> u64 {
-    mov(rax, val);
-    return getreg(rax);
+    mov(eax, val);
+    return getreg(eax);
 }
 
 fn i64_to_u64(val: i64) -> u64 {
-    mov(rax, val);
-    return getreg(rax);
+    mov(eax, val);
+    return getreg(eax);
 }
 
 fn u64_to_i64(val: u64) -> i64 {
-    mov(rax, val);
-    return getreg(rax);
+    mov(eax, val);
+    return getreg(eax);
 }
 
 fn array_len(arr: []i32) -> i32 {
-    mov(r9, arr);
-    let hdr: u64 = getreg(r9);
-    return load32(hdr + 8);
+    mov(ecx, arr);
+    let hdr: u64 = getreg(ecx);
+    return load32(hdr + 4);
 }
 
 fn array_len_u64(arr: []u64) -> i32 {
-    mov(r9, arr);
-    let hdr: u64 = getreg(r9);
-    return load32(hdr + 8);
+    mov(ecx, arr);
+    let hdr: u64 = getreg(ecx);
+    return load32(hdr + 4);
 }
 
 fn array_len_str(arr: []str) -> i32 {
-    mov(r9, arr);
-    let hdr: u64 = getreg(r9);
-    return load32(hdr + 8);
+    mov(ecx, arr);
+    let hdr: u64 = getreg(ecx);
+    return load32(hdr + 4);
 }
 
 fn array_len_i64(arr: []i64) -> i32 {
-    mov(r9, arr);
-    let hdr: u64 = getreg(r9);
-    return load32(hdr + 8);
+    mov(ecx, arr);
+    let hdr: u64 = getreg(ecx);
+    return load32(hdr + 4);
 }
 
 fn array_data_ptr_i32(arr: []i32) -> i64 {
-    mov(r9, arr);
-    let hdr: u64 = getreg(r9);
+    mov(ecx, arr);
+    let hdr: u64 = getreg(ecx);
     return load64(hdr);
 }
 
 fn array_data_ptr_str(arr: []str) -> i64 {
-    mov(r9, arr);
-    let hdr: u64 = getreg(r9);
+    mov(ecx, arr);
+    let hdr: u64 = getreg(ecx);
     return load64(hdr);
 }
 
 fn array_data_ptr_i64(arr: []i64) -> i64 {
-    mov(r9, arr);
-    let hdr: u64 = getreg(r9);
+    mov(ecx, arr);
+    let hdr: u64 = getreg(ecx);
     return load64(hdr);
 }
 
 fn print(msg: str) -> void {
     let out: str = msg + "\n";
     win_call("GetStdHandle", -11);
-    let h: u64 = getreg(rax);
+    let h: u64 = getreg(eax);
     win_call("WriteConsoleA", h, out, len(out), 0, 0);
 }
 
 fn print_raw(msg: str) -> void {
     win_call("GetStdHandle", -11);
-    let h: u64 = getreg(rax);
+    let h: u64 = getreg(eax);
     win_call("WriteConsoleA", h, msg, len(msg), 0, 0);
 }
 
@@ -82,16 +82,15 @@ fn exit(code: i32) -> void {
 }
 
 fn get_time_ns() -> i64 {
-    // Use GetTickCount64 (returns ms since boot), convert to ns
     win_call("GetTickCount64");
-    let ms: i64 = getreg(rax);
+    let ms: i64 = getreg(eax);
     return ms * 1000000;
 }
 
 fn input(prompt: str, buf_len: i32 = 128) -> str {
     print_raw(prompt);
     win_call("GetStdHandle", -10);
-    let h: u64 = getreg(rax);
+    let h: u64 = getreg(eax);
     let buf: str = "";
     while (len(buf) < buf_len) {
         buf = buf + " ";
@@ -110,67 +109,57 @@ fn input(prompt: str, buf_len: i32 = 128) -> str {
 }
 
 fn ptr(s: str) -> u64 {
-    mov(rax, s);
-    return getreg(rax);
+    mov(eax, s);
+    return getreg(eax);
 }
 
 fn array_data_ptr_u64(arr: []u64) -> i64 {
-    mov(r9, arr);
-    let hdr: u64 = getreg(r9);
+    mov(ecx, arr);
+    let hdr: u64 = getreg(ecx);
     return load64(hdr);
 }
 
-// Create and run a process using CreateProcessA, wait for completion
 fn spawn_process_wait(exe: str) -> i32 {
-    // STARTUPINFOA: 104 bytes on x64, cbSize at offset 0
-    let si: str = make_buffer(104);
-    memset(ptr(si), 0, 104);
-    store32(ptr(si), 104);
+    // STARTUPINFOA: 68 bytes on x86
+    let si: str = "";
+    let k: i32 = 0;
+    while (k < 68) { si = si + "\0"; k = k + 1; }
+    si[0] = 68;  // cbSize = 68
 
-    // PROCESS_INFORMATION: 24 bytes on x64
-    let pi: str = make_buffer(24);
-    memset(ptr(pi), 0, 24);
+    // PROCESS_INFORMATION: 16 bytes on x86
+    let pi: str = "";
+    k = 0;
+    while (k < 16) { pi = pi + "\0"; k = k + 1; }
 
-    // CreateProcessA(NULL, cmdLine, NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi)
     win_call("CreateProcessA", 0, exe, 0, 0, 0, 0, 0, 0, si, pi);
-    let ok: u64 = getreg(rax);
+    let ok: u64 = getreg(eax);
     if (ok == 0) { return -1; }
 
-    // Extract hProcess from PROCESS_INFORMATION (offset 0, 8 bytes)
-    let hp: i64 = load64(ptr(pi));
-    let h_proc: u64 = i64_to_u64(hp);
-
-    // WaitForSingleObject(hProcess, INFINITE=0xFFFFFFFF)
+    // hProcess at offset 0 (4 bytes on x86)
+    let h_proc: u64 = i32_to_u64(load32(ptr(pi)));
     win_call("WaitForSingleObject", h_proc, 4294967295);
 
-    // GetExitCodeProcess(hProcess, &exitCode)
     let ec: i32 = 0;
     let ec_addr: u64 = &ec;
     win_call("GetExitCodeProcess", h_proc, ec_addr);
-
-    // CloseHandle(hProcess)
     win_call("CloseHandle", h_proc);
 
-    // Extract hThread from PROCESS_INFORMATION (offset 8, 8 bytes)
-    let ht: i64 = load64(ptr(pi) + 8);
-    let h_thread: u64 = i64_to_u64(ht);
+    // hThread at offset 4
+    let h_thread: u64 = i32_to_u64(load32(ptr(pi) + 4));
     win_call("CloseHandle", h_thread);
 
     return ec;
 }
 
-// Windows doesn't have fork(); stub returns -1
 fn fork() -> i32 {
     return -1;
 }
 
 fn execve_raw(path: str, argv: []u64) -> i32 {
-    // Not available on Windows; use spawn_process_wait instead
     return -1;
 }
 
 fn spawn_execve(path: str, argv: []u64) -> i32 {
-    // Build a command line string from argv
     let cmd: str = "";
     let argc: i32 = array_len_u64(argv);
     let i: i32 = 0;
@@ -196,7 +185,7 @@ fn get_home_dir() -> str {
     while (k < 260) { buf = buf + " "; k = k + 1; }
     let var_name: str = "USERPROFILE\0";
     win_call("GetEnvironmentVariableA", var_name, buf, 260);
-    let nread: i32 = u64_to_i32(getreg(rax));
+    let nread: i32 = u64_to_i32(getreg(eax));
     if (nread <= 0) { return ""; }
     return substr_len(buf, 0, nread);
 }
@@ -207,7 +196,7 @@ fn get_username() -> str {
     while (k < 260) { buf = buf + " "; k = k + 1; }
     let var_name: str = "USERNAME\0";
     win_call("GetEnvironmentVariableA", var_name, buf, 260);
-    let nread: i32 = u64_to_i32(getreg(rax));
+    let nread: i32 = u64_to_i32(getreg(eax));
     if (nread <= 0) { return ""; }
     return substr_len(buf, 0, nread);
 }

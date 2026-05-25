@@ -1,42 +1,34 @@
 // ---------------------------------------------------------------------------
-// std/memory_windows_amd64 - memory & buffer ops (Windows x86-64)
+// std/memory_windows_x86 - memory & buffer ops (Windows x86 32-bit)
 // ---------------------------------------------------------------------------
 
-module std_memory_windows_amd64;
+module std_memory_windows_x86;
 
-import core;
-import strings;
-import windows_amd64;
+import ../../core/core;
+import ../../core/strings;
+import x86;
 
 fn make_buffer(size: i32) -> str {
     if (size <= 0) { return ""; }
-    // Force heap allocation: local var prevents constant folding of concat
-    let seed: str = "        ";
-    let buf: str = seed + seed;
+    let buf: str = "        ";
     while (len(buf) < size) {
         buf = buf + buf;
     }
-    // Truncate by null-terminating at the right position
     if (len(buf) > size) {
-        store8(ptr(buf) + i32_to_u64(size), 0);
+        let pa: u64 = ptr(buf);
+        return copy_bytes_raw(pa, size);
     }
     return buf;
 }
 
-// Copy raw bytes using doubling + RtlMoveMemory (O(n) instead of O(n²))
 fn copy_bytes_raw(src: u64, length: i32) -> str {
     if (length <= 0) { return ""; }
-    // Force heap allocation: local var prevents constant folding of concat
-    let seed: str = "        ";
-    let buf: str = seed + seed;
-    while (len(buf) < length + 1) {
-        buf = buf + buf;
-    }
+    let c64: str = "                                                                ";
+    let buf: str = "";
+    while (len(buf) + 64 <= length) { buf = buf + c64; }
+    while (len(buf) < length) { buf = buf + " "; }
     let dest: u64 = ptr(buf);
-    // Copy source data into the buffer
     win_call("RtlMoveMemory", dest, src, length);
-    // Null-terminate at the correct position
-    store8(dest + i32_to_u64(length), 0);
     return buf;
 }
 
@@ -55,18 +47,17 @@ fn byte_at(s: str, i: i32) -> i32 {
 }
 
 fn argv_get(argv: u64, index: i32) -> str {
-    let offset: u64 = i32_to_u64(index) * 8;
-    let addr: u64 = i64_to_u64(load64(argv + offset));
+    // On x86 pointers are 4 bytes
+    let offset: u64 = i32_to_u64(index) * 4;
+    let addr: u64 = i32_to_u64(load32(argv + offset));
     return cstr_to_str(addr);
 }
 
-// Write a single byte using RtlFillMemory
 fn store8(addr: u64, val: i32) -> void {
     let byte_val: i32 = ((val % 256) + 256) % 256;
     win_call("RtlFillMemory", addr, 1, byte_val);
 }
 
-// Write a 32-bit value to a raw memory address (little-endian)
 fn store32(addr: u64, val: i32) -> void {
     store8(addr, val % 256);
     store8(addr + 1, (val / 256) % 256);
@@ -74,7 +65,6 @@ fn store32(addr: u64, val: i32) -> void {
     store8(addr + 3, (val / 16777216) % 256);
 }
 
-// Fill a memory region with a byte value
 fn memset(addr: u64, val: i32, count: i32) -> void {
     win_call("RtlFillMemory", addr, count, val);
 }

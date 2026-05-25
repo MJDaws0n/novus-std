@@ -4,9 +4,9 @@
 
 module std_memory_darwin_arm64;
 
-import core;
-import strings;
-import darwin_arm64;
+import ../../core/core;
+import ../../core/strings;
+import arm64;
 
 fn make_buffer(size: i32) -> str {
     if (size <= 0) { return ""; }

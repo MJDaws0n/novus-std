@@ -16,15 +16,13 @@ import core;
 import strings;
 
 #if(os == "darwin") {
-    import darwin_arm64;
-    import memory_darwin_arm64;
+    import ../platforms/darwin/common;
 }
 #if(os == "windows") {
-    import windows_amd64;
-    import memory_windows_amd64;
+    import ../platforms/windows/common;
 }
 #if(os == "linux") {
-    import linux;
+    import ../platforms/linux/common;
 }
 
 // ---------------------------------------------------------------------------

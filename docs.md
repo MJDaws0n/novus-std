@@ -8,12 +8,23 @@ Import in any project that has `std` in `libraries.conf` (added by default by
 
 ```novus
 module myapp;
-import lib_std std;
+import lib/std std;
 
 fn main() -> i32 {
-    print("hello, world");
+    std.print("hello, world");
     return 0;
 }
+```
+
+### Repository layout
+
+```
+core/                 cross-platform helpers (strings, conversions, aliases)
+platforms/darwin/     macOS Apple Silicon implementation
+platforms/linux/      Linux (amd64 + arm64) implementation
+platforms/windows/    Windows (amd64 + x86) implementation
+tests/                per-platform regression tests + unified_api.nov
+main.nov              dispatcher — picks the right platform automatically
 ```
 
 > All names below live in the imported `std` namespace. Functions are

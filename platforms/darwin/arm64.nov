@@ -1,143 +1,140 @@
 // ---------------------------------------------------------------------------
-// std/linux_arm64 - Linux ARM64 (aarch64) platform layer
-// Linux ARM64 syscall: x8=syscall#, x0-x5=args, svc #0, return in x0
+// std/darwin_arm64 - macOS Apple Silicon platform layer
 // ---------------------------------------------------------------------------
 
-module std_linux_arm64;
+module std_darwin_arm64;
 
-import core;
+import ../../core/core;
 
 fn i32_to_u64(val: i32) -> u64 {
-    mov(x0, val);
-    return getreg(x0);
+    mov(x9, val);
+    return getreg(x9);
 }
 
 fn i64_to_u64(val: i64) -> u64 {
-    mov(x0, val);
-    return getreg(x0);
+    mov(x9, val);
+    return getreg(x9);
 }
 
 fn u64_to_i64(val: u64) -> i64 {
-    mov(x0, val);
-    return getreg(x0);
+    mov(x9, val);
+    return getreg(x9);
 }
 
 fn array_len(arr: []i32) -> i32 {
-    mov(x0, arr);
-    let hdr: u64 = getreg(x0);
+    mov(x9, arr);
+    let hdr: u64 = getreg(x9);
     return load32(hdr + 8);
 }
 
 fn array_len_u64(arr: []u64) -> i32 {
-    mov(x0, arr);
-    let hdr: u64 = getreg(x0);
+    mov(x9, arr);
+    let hdr: u64 = getreg(x9);
     return load32(hdr + 8);
 }
 
 fn array_len_str(arr: []str) -> i32 {
-    mov(x0, arr);
-    let hdr: u64 = getreg(x0);
+    mov(x9, arr);
+    let hdr: u64 = getreg(x9);
     return load32(hdr + 8);
 }
 
 fn array_len_i64(arr: []i64) -> i32 {
-    mov(x0, arr);
-    let hdr: u64 = getreg(x0);
+    mov(x9, arr);
+    let hdr: u64 = getreg(x9);
     return load32(hdr + 8);
 }
 
 fn array_data_ptr_i32(arr: []i32) -> i64 {
-    mov(x0, arr);
-    let hdr: u64 = getreg(x0);
+    mov(x9, arr);
+    let hdr: u64 = getreg(x9);
     return load64(hdr);
 }
 
 fn array_data_ptr_str(arr: []str) -> i64 {
-    mov(x0, arr);
-    let hdr: u64 = getreg(x0);
+    mov(x9, arr);
+    let hdr: u64 = getreg(x9);
     return load64(hdr);
 }
 
 fn array_data_ptr_i64(arr: []i64) -> i64 {
-    mov(x0, arr);
-    let hdr: u64 = getreg(x0);
+    mov(x9, arr);
+    let hdr: u64 = getreg(x9);
     return load64(hdr);
 }
 
 fn print(msg: str) -> void {
     msg = msg + "\n";
-    mov(x0, 1);        // fd = stdout
+    mov(x0, 1);
     mov(x1, msg);
     mov(x2, len(msg));
-    mov(x8, 64);       // SYS_write
+    mov(x16, 0x2000004);
     syscall();
 }
 
 fn print_raw(msg: str) -> void {
-    mov(x0, 1);        // fd = stdout
+    mov(x0, 1);
     mov(x1, msg);
     mov(x2, len(msg));
-    mov(x8, 64);       // SYS_write
+    mov(x16, 0x2000004);
     syscall();
 }
 
 fn exit(code: i32) -> void {
     mov(x0, code);
-    mov(x8, 93);       // SYS_exit
+    mov(x16, 0x2000001);
     syscall();
 }
 
 fn get_time_ns() -> i64 {
     let buf: str = "0123456789abcdef";
-    mov(x0, 0);        // CLOCK_REALTIME
-    mov(x1, buf);
-    mov(x8, 113);      // SYS_clock_gettime
-    syscall();
     mov(x0, buf);
-    let base: u64 = getreg(x0);
+    mov(x1, 0);
+    mov(x16, 0x2000074);
+    syscall();
+    mov(x9, buf);
+    let base: u64 = getreg(x9);
     let tv_sec: i64 = load64(base);
-    let tv_nsec: i64 = load64(base + 8);
-    return tv_sec * 1000000000 + tv_nsec;
+    let tv_usec: i64 = load64(base + 8);
+    return tv_sec * 1000000000 + tv_usec * 1000;
 }
 
 fn input(prompt: str, buf_len: i32 = 128) -> str {
     mov(x0, 1);
     mov(x1, prompt);
     mov(x2, len(prompt));
-    mov(x8, 64);       // SYS_write
+    mov(x16, 0x2000004);
     syscall();
     let buf: str = "";
     while(len(buf) < buf_len) {
         buf = buf + " ";
     }
-    mov(x0, 0);        // fd = stdin
+    mov(x0, 0);
     mov(x1, buf);
     mov(x2, buf_len);
-    mov(x8, 63);       // SYS_read
+    mov(x16, 0x2000003);
     syscall();
     let nread: i32 = u64_to_i32(getreg(x0));
-    let bp: u64 = ptr(buf);
     let out: str = "";
     let i: i32 = 0;
     while (i < nread) {
-        let ch: i32 = read_byte(bp + i32_to_u64(i));
-        if (ch == 10) {
+        if (buf[i] == '\n') {
             break;
         }
-        out = out + copy_bytes_raw(bp + i32_to_u64(i), 1);
+        out = out + buf[i];
         i = i + 1;
     }
     return out;
 }
 
 fn ptr(s: str) -> u64 {
-    mov(x0, s);
-    return getreg(x0);
+    mov(x9, s);
+    return getreg(x9);
 }
 
 fn array_data_ptr_u64(arr: []u64) -> i64 {
-    mov(x0, arr);
-    let hdr: u64 = getreg(x0);
+    mov(x9, arr);
+    let hdr: u64 = getreg(x9);
     return load64(hdr);
 }
 
@@ -148,21 +145,21 @@ fn execve_raw(path: str, argv: []u64) -> i32 {
     mov(x0, path);
     mov(x1, argv_ptr);
     mov(x2, envp_ptr);
-    mov(x8, 221);      // SYS_execve
+    mov(x16, 0x2000000 + 59);
     syscall();
     return u64_to_i32(getreg(x0));
 }
 
 fn fork() -> i32 {
-    // ARM64 Linux has no fork syscall; use clone(SIGCHLD, 0, 0, 0, 0)
-    mov(x0, 17);       // SIGCHLD
-    mov(x1, 0);        // child_stack = 0
-    mov(x2, 0);        // parent_tid
-    mov(x3, 0);        // tls
-    mov(x4, 0);        // child_tid
-    mov(x8, 220);      // SYS_clone
+    mov(x16, 0x2000000 + 2);
     syscall();
-    return u64_to_i32(getreg(x0));
+    let raw_x0: u64 = getreg(x0);
+    let raw_x1: u64 = getreg(x1);
+    let x1_val: i32 = u64_to_i32(raw_x1);
+    if (x1_val == 1) {
+        return 0;
+    }
+    return u64_to_i32(raw_x0);
 }
 
 fn spawn_execve(path: str, argv: []u64) -> i32 {
@@ -177,47 +174,130 @@ fn spawn_execve(path: str, argv: []u64) -> i32 {
 
 // ---------------------------------------------------------------------------
 // User info: get_home_dir / get_username
-// Reads /etc/passwd and matches on current UID (via SYS_getuid)
-// ARM64 Linux has no SYS_open; uses SYS_openat with AT_FDCWD
+// On macOS, /etc/passwd often omits normal GUI users, so prefer `id -P`.
+// Falls back to /etc/passwd when command execution fails.
 // ---------------------------------------------------------------------------
 
+fn _read_macos_user_record() -> str {
+    let pipebuf: str = "\0\0\0\0\0\0\0\0";
+    mov(x16, 0x200002A);   // SYS_pipe
+    syscall();
+    let rfd: i32 = u64_to_i32(getreg(x0));
+    let wfd: i32 = u64_to_i32(getreg(x1));
+    if (rfd < 0 || wfd < 0) { return ""; }
+
+    let pid: i32 = fork();
+    if (pid == 0) {
+        mov(x0, rfd);
+        mov(x16, 0x2000000 + 6);   // SYS_close
+        syscall();
+
+        mov(x0, wfd);
+        mov(x1, 1);
+        mov(x16, 0x2000000 + 90);  // SYS_dup2
+        syscall();
+
+        mov(x0, wfd);
+        mov(x16, 0x2000000 + 6);   // SYS_close
+        syscall();
+
+        let path: str = "/usr/bin/id\0";
+        let flag: str = "-P\0";
+        let argv: []u64 = [ptr(path), ptr(flag), 0];
+        execve_raw(path, argv);
+        exit(1);
+        return "";
+    }
+
+    mov(x0, wfd);
+    mov(x16, 0x2000000 + 6);   // SYS_close
+    syscall();
+
+    if (pid < 0) {
+        mov(x0, rfd);
+        mov(x16, 0x2000000 + 6);   // SYS_close
+        syscall();
+        return "";
+    }
+
+    let buf: str = "";
+    let k: i32 = 0;
+    while (k < 512) { buf = buf + " "; k = k + 1; }
+    mov(x0, rfd);
+    mov(x1, buf);
+    mov(x2, 512);
+    mov(x16, 0x2000000 + 3);   // SYS_read
+    syscall();
+    let nread: i32 = u64_to_i32(getreg(x0));
+
+    mov(x0, rfd);
+    mov(x16, 0x2000000 + 6);   // SYS_close
+    syscall();
+
+    if (nread <= 0) { return ""; }
+    let line: str = substr_len(buf, 0, nread);
+    let newline_at: i32 = str_find(line, "\n");
+    if (newline_at >= 0) {
+        return substr_len(line, 0, newline_at);
+    }
+    return line;
+}
+
+fn _get_macos_user_record_field(target_field: i32) -> str {
+    let record: str = _read_macos_user_record();
+    if (len(record) == 0) { return ""; }
+    let field: i32 = 0;
+    let field_start: i32 = 0;
+    let record_len: i32 = len(record);
+    let i: i32 = 0;
+    while (i <= record_len) {
+        if (i == record_len || record[i] == ':') {
+            if (field == target_field) {
+                return substr_len(record, field_start, i - field_start);
+            }
+            field = field + 1;
+            field_start = i + 1;
+        }
+        i = i + 1;
+    }
+    return "";
+}
+
 fn get_home_dir() -> str {
-    // Get current UID
-    mov(x8, 174);      // SYS_getuid
+    let home: str = _get_macos_user_record_field(8);
+    if (len(home) > 0) { return home; }
+
+    // Fallback to /etc/passwd for environments where `id -P` is unavailable.
+    mov(x16, 0x2000000 + 24);  // SYS_getuid
     syscall();
     let uid: i32 = u64_to_i32(getreg(x0));
     let uid_str: str = i32_to_str(uid);
 
-    // Open /etc/passwd using openat(AT_FDCWD, path, O_RDONLY)
     let path: str = "/etc/passwd\0";
-    mov(x0, -100);     // AT_FDCWD
-    mov(x1, path);
-    mov(x2, 0);        // O_RDONLY
-    mov(x3, 0);
-    mov(x8, 56);       // SYS_openat
+    mov(x0, path);
+    mov(x1, 0);
+    mov(x2, 0);
+    mov(x16, 0x2000000 + 5);   // SYS_open
     syscall();
     let fd: i32 = u64_to_i32(getreg(x0));
     if (fd < 0) { return ""; }
 
-    // Read file contents
     let buf: str = "";
     let k: i32 = 0;
     while (k < 4096) { buf = buf + " "; k = k + 1; }
     mov(x0, fd);
     mov(x1, buf);
     mov(x2, 4096);
-    mov(x8, 63);       // SYS_read
+    mov(x16, 0x2000000 + 3);   // SYS_read
     syscall();
     let nread: i32 = u64_to_i32(getreg(x0));
 
-    // Close file
     mov(x0, fd);
-    mov(x8, 57);       // SYS_close
+    mov(x16, 0x2000000 + 6);   // SYS_close
     syscall();
 
     if (nread <= 0) { return ""; }
 
-    // Parse /etc/passwd: each line is username:x:uid:gid:gecos:home:shell
     let i: i32 = 0;
     while (i < nread) {
         let line_start: i32 = i;
@@ -252,42 +332,39 @@ fn get_home_dir() -> str {
 }
 
 fn get_username() -> str {
-    // Get current UID
-    mov(x8, 174);      // SYS_getuid
+    let username: str = _get_macos_user_record_field(0);
+    if (len(username) > 0) { return username; }
+
+    mov(x16, 0x2000000 + 24);  // SYS_getuid
     syscall();
     let uid: i32 = u64_to_i32(getreg(x0));
     let uid_str: str = i32_to_str(uid);
 
-    // Open /etc/passwd using openat(AT_FDCWD, path, O_RDONLY)
     let path: str = "/etc/passwd\0";
-    mov(x0, -100);     // AT_FDCWD
-    mov(x1, path);
-    mov(x2, 0);        // O_RDONLY
-    mov(x3, 0);
-    mov(x8, 56);       // SYS_openat
+    mov(x0, path);
+    mov(x1, 0);
+    mov(x2, 0);
+    mov(x16, 0x2000000 + 5);   // SYS_open
     syscall();
     let fd: i32 = u64_to_i32(getreg(x0));
     if (fd < 0) { return ""; }
 
-    // Read file contents
     let buf: str = "";
     let k: i32 = 0;
     while (k < 4096) { buf = buf + " "; k = k + 1; }
     mov(x0, fd);
     mov(x1, buf);
     mov(x2, 4096);
-    mov(x8, 63);       // SYS_read
+    mov(x16, 0x2000000 + 3);   // SYS_read
     syscall();
     let nread: i32 = u64_to_i32(getreg(x0));
 
-    // Close file
     mov(x0, fd);
-    mov(x8, 57);       // SYS_close
+    mov(x16, 0x2000000 + 6);   // SYS_close
     syscall();
 
     if (nread <= 0) { return ""; }
 
-    // Parse /etc/passwd
     let i: i32 = 0;
     while (i < nread) {
         let line_start: i32 = i;

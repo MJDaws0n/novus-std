@@ -1,27 +1,28 @@
 // ---------------------------------------------------------------------------
-// std/memory_linux_arm64 - memory & buffer ops (Linux ARM64)
-// Pipe-free implementation — uses string indexing and read_byte instead
-// of pipe2() syscalls to avoid file descriptor exhaustion.
+// std/memory_linux_amd64 - memory & buffer ops (Linux x86_64)
+// Linux pipe() returns fds via memory buffer, not registers.
 // ---------------------------------------------------------------------------
 
-module std_memory_linux_arm64;
+module std_memory_linux_amd64;
 
-import core;
-import strings;
-import linux_arm64;
+import ../../core/core;
+import ../../core/strings;
+import amd64;
 
 fn make_buffer(size: i32) -> str {
     if (size <= 0) { return ""; }
     let buf: str = "        ";
+    buf = buf + buf;
     while (len(buf) < size) {
         buf = buf + buf;
     }
-    // Force a heap copy so we don't mutate shared string literals
-    buf = buf + "";
-    buf[size] = 0;
+    if (len(buf) > size) {
+        buf[size] = 0;
+    }
     return buf;
 }
 
+// Copy bytes from raw address to a new string (no pipe, byte-by-byte)
 fn copy_bytes_raw(src: u64, length: i32) -> str {
     if (length <= 0) { return ""; }
     let buf: str = make_buffer(length);
@@ -53,39 +54,71 @@ fn argv_get(argv: u64, index: i32) -> str {
     return cstr_to_str(addr);
 }
 
-// Write a single byte to a raw memory address (pipe trick)
-// Not used in hot paths — net library uses buf[i] = val instead.
+// Write a single byte to a raw memory address using the pipe trick
 fn store8(addr: u64, val: i32) -> void {
     let tmp: str = "\0";
     tmp[0] = ((val % 256) + 256) % 256;
 
     let pipebuf: str = "\0\0\0\0\0\0\0\0";
-    mov(x0, pipebuf);
-    mov(x1, 0);        // flags = 0
-    mov(x8, 59);       // SYS_pipe2
+    mov(rax, 22);      // SYS_pipe
+    mov(rdi, pipebuf);
     syscall();
     let pb: u64 = ptr(pipebuf);
     let rfd: i32 = load32(pb);
     let wfd: i32 = load32(pb + 4);
 
-    mov(x0, wfd);
-    mov(x1, tmp);
-    mov(x2, 1);
-    mov(x8, 64);       // SYS_write
+    mov(rax, 1);       // SYS_write
+    mov(rdi, wfd);
+    mov(rsi, tmp);
+    mov(rdx, 1);
     syscall();
 
-    mov(x0, wfd);
-    mov(x8, 57);       // SYS_close
+    mov(rax, 3);       // SYS_close
+    mov(rdi, wfd);
     syscall();
 
-    mov(x0, rfd);
-    mov(x1, addr);
-    mov(x2, 1);
-    mov(x8, 63);       // SYS_read
+    mov(rax, 0);       // SYS_read
+    mov(rdi, rfd);
+    mov(rsi, addr);
+    mov(rdx, 1);
     syscall();
 
-    mov(x0, rfd);
-    mov(x8, 57);       // SYS_close
+    mov(rax, 3);       // SYS_close
+    mov(rdi, rfd);
+    syscall();
+}
+
+// Copy N bytes from src address to dst address using a single pipe
+fn pipe_copy(src_addr: u64, dst_addr: u64, count: i32) -> void {
+    if (count <= 0) { return; }
+    let ucount: u64 = i32_to_u64(count);
+
+    let pipebuf: str = "\0\0\0\0\0\0\0\0";
+    mov(rax, 22);
+    mov(rdi, pipebuf);
+    syscall();
+    let pb: u64 = ptr(pipebuf);
+    let rfd: i32 = load32(pb);
+    let wfd: i32 = load32(pb + 4);
+
+    mov(rax, 1);
+    mov(rdi, wfd);
+    mov(rsi, src_addr);
+    mov(rdx, ucount);
+    syscall();
+
+    mov(rax, 3);
+    mov(rdi, wfd);
+    syscall();
+
+    mov(rax, 0);
+    mov(rdi, rfd);
+    mov(rsi, dst_addr);
+    mov(rdx, ucount);
+    syscall();
+
+    mov(rax, 3);
+    mov(rdi, rfd);
     syscall();
 }
 
