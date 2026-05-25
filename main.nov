@@ -29,3 +29,5 @@ import strings;
 #if(os == "linux") {
     import linux;
 }
+
+import aliases;
