@@ -46,6 +46,30 @@ fn array_len_i64(arr: []i64) -> i32 {
     return load32(hdr + 8);
 }
 
+fn array_len_u32(arr: []u32) -> i32 {
+    mov(x0, arr);
+    let hdr: u64 = getreg(x0);
+    return load32(hdr + 8);
+}
+
+fn array_len_bool(arr: []bool) -> i32 {
+    mov(x0, arr);
+    let hdr: u64 = getreg(x0);
+    return load32(hdr + 8);
+}
+
+fn array_len_f32(arr: []f32) -> i32 {
+    mov(x0, arr);
+    let hdr: u64 = getreg(x0);
+    return load32(hdr + 8);
+}
+
+fn array_len_f64(arr: []f64) -> i32 {
+    mov(x0, arr);
+    let hdr: u64 = getreg(x0);
+    return load32(hdr + 8);
+}
+
 fn array_data_ptr_i32(arr: []i32) -> i64 {
     mov(x0, arr);
     let hdr: u64 = getreg(x0);

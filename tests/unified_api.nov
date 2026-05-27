@@ -33,13 +33,31 @@ fn main() -> i32 {
     fails += check_str("to_str(i32)", to_str(42), "42");
     let big: i64 = 9999999999;
     fails += check_str("to_str(i64)", to_str(big), "9999999999");
+    let uu32: u32 = 1234;
+    let uu64: u64 = 9876543210;
+    let ff32: f32 = 3.25;
+    let ff64: f64 = 12.5;
+    fails += check_str("to_str(u32)", to_str(uu32), "1234");
+    fails += check_str("to_str(u64)", to_str(uu64), "9876543210");
+    fails += check_str("to_str(f32)", to_str(ff32), "3.25");
+    fails += check_str("to_str(f64)", to_str(ff64), "12.5");
     fails += check_str("to_str(bool true)", to_str(true), "true");
     fails += check_str("to_str(bool false)", to_str(false), "false");
     fails += check_str("to_str(str)", to_str("hi"), "hi");
 
-    print_raw("\n--- to_i32 / to_i64 / to_bool ---\n");
+    print_raw("\n--- numeric conversions ---\n");
     fails += check_i32("to_i32(str)", to_i32("123"), 123);
     fails += check_i32("to_i32(i32)", to_i32(7), 7);
+    fails += check_i32("to_i32(u32)", to_i32(uu32), 1234);
+    fails += check_i32("to_i32(f64)", to_i32(ff64), 12);
+    fails += check_str("to_i64(u32)", to_str(to_i64(uu32)), "1234");
+    fails += check_str("to_u32(str)", to_str(to_u32("77")), "77");
+    fails += check_str("to_u32(f64)", to_str(to_u32(ff64)), "12");
+    fails += check_str("to_u64(str)", to_str(to_u64("8888")), "8888");
+    fails += check_str("to_f32(str)", to_str(to_f32("7.25")), "7.25");
+    fails += check_str("to_f32(i32)", to_str(to_f32(9)), "9");
+    fails += check_str("to_f64(str)", to_str(to_f64("45.5")), "45.5");
+    fails += check_str("to_f64(i64)", to_str(to_f64(big)), "9999999999");
     fails += check_true("to_bool(\"true\")", to_bool("true"));
     fails += check_true("!to_bool(\"false\")", !to_bool("false"));
 
@@ -47,6 +65,14 @@ fn main() -> i32 {
     fails += check_i32("len(str)", len("hello"), 5);
     let ai: []i32 = [10, 20, 30];
     fails += check_i32("len([]i32)", len(ai), 3);
+    let au32: []u32 = [1, 2, 3, 4];
+    let ab: []bool = [true, false, true];
+    let af32: []f32 = [1.5, 2.5];
+    let af64: []f64 = [1.0, 2.0, 3.0];
+    fails += check_i32("len([]u32)", len(au32), 4);
+    fails += check_i32("len([]bool)", len(ab), 3);
+    fails += check_i32("len([]f32)", len(af32), 2);
+    fails += check_i32("len([]f64)", len(af64), 3);
     let ss: []str = ["a", "b", "c", "d"];
     fails += check_i32("len([]str)", len(ss), 4);
 
@@ -55,6 +81,10 @@ fn main() -> i32 {
     fails += check_true("!contains(str)", !contains("hello", "xyz"));
     fails += check_true("contains([]i32)", contains(ai, 20));
     fails += check_true("!contains([]i32)", !contains(ai, 99));
+    fails += check_true("contains([]u32)", contains(au32, 3));
+    fails += check_true("contains([]bool)", contains(ab, false));
+    fails += check_true("contains([]f32)", contains(af32, 2.5));
+    fails += check_true("contains([]f64)", contains(af64, 2.0));
     fails += check_true("contains([]str)", contains(ss, "c"));
 
     print_raw("\n--- string helpers (unprefixed) ---\n");
