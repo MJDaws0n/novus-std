@@ -194,14 +194,14 @@ fn main() -> i32 {
     fails += check_str("lcm(i64)", to_str(lcm(li64, lj64)), "720");
     fails += check_str("factorial(i64)", to_str(factorial(to_i64(10))), "3628800");
 
-    let uu64: u64 = 48;
-    let vv64: u64 = 180;
-    fails += check_str("abs(u64)", to_str(abs(uu64)), "48");
-    fails += check_str("clamp(u64)", to_str(clamp(vv64, to_u64(0), to_u64(100))), "100");
-    fails += check_i32("sign(u64)", sign(uu64), 1);
-    fails += check_true("is_even(u64)", is_even(uu64));
+    let xu64: u64 = 48;
+    let yu64: u64 = 180;
+    fails += check_str("abs(u64)", to_str(abs(xu64)), "48");
+    fails += check_str("clamp(u64)", to_str(clamp(yu64, to_u64(0), to_u64(100))), "100");
+    fails += check_i32("sign(u64)", sign(xu64), 1);
+    fails += check_true("is_even(u64)", is_even(xu64));
     fails += check_true("is_odd(u64)", is_odd(to_u64(7)));
-    fails += check_str("gcd(u64)", to_str(gcd(uu64, vv64)), "12");
+    fails += check_str("gcd(u64)", to_str(gcd(xu64, yu64)), "12");
     fails += check_str("lcm(u64)", to_str(lcm(to_u64(4), to_u64(6))), "12");
     fails += check_str("pow(u64)", to_str(pow(to_u64(2), 32)), "4294967296");
     fails += check_str("factorial(u64)", to_str(factorial(to_u64(10))), "3628800");
