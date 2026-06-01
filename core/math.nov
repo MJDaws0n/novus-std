@@ -13,6 +13,8 @@ module std_math;
 
 fn abs(n: i32) -> i32 { if (n < 0) { return 0 - n; } return n; }
 fn abs(n: i64) -> i64 { if (n < 0) { return 0 - n; } return n; }
+fn abs(n: u32) -> u32 { return n; }
+fn abs(n: u64) -> u64 { return n; }
 fn abs(n: f32) -> f32 { if (n < 0.0) { return 0.0 - n; } return n; }
 fn abs(n: f64) -> f64 { if (n < 0.0) { return 0.0 - n; } return n; }
 
@@ -48,6 +50,16 @@ fn clamp(v: i64, lo: i64, hi: i64) -> i64 {
     if (v > hi) { return hi; }
     return v;
 }
+fn clamp(v: u32, lo: u32, hi: u32) -> u32 {
+    if (v < lo) { return lo; }
+    if (v > hi) { return hi; }
+    return v;
+}
+fn clamp(v: u64, lo: u64, hi: u64) -> u64 {
+    if (v < lo) { return lo; }
+    if (v > hi) { return hi; }
+    return v;
+}
 fn clamp(v: f32, lo: f32, hi: f32) -> f32 {
     if (v < lo) { return lo; }
     if (v > hi) { return hi; }
@@ -73,6 +85,14 @@ fn sign(n: i64) -> i32 {
     if (n < 0) { return 0 - 1; }
     return 0;
 }
+fn sign(n: u32) -> i32 {
+    if (n > 0) { return 1; }
+    return 0;
+}
+fn sign(n: u64) -> i32 {
+    if (n > 0) { return 1; }
+    return 0;
+}
 fn sign(n: f32) -> i32 {
     if (n > 0.0) { return 1; }
     if (n < 0.0) { return 0 - 1; }
@@ -90,8 +110,12 @@ fn sign(n: f64) -> i32 {
 
 fn is_even(n: i32) -> bool { return (n % 2) == 0; }
 fn is_even(n: i64) -> bool { return (n % 2) == 0; }
+fn is_even(n: u32) -> bool { return (n % 2) == 0; }
+fn is_even(n: u64) -> bool { return (n % 2) == 0; }
 fn is_odd(n: i32)  -> bool { return (n % 2) != 0; }
 fn is_odd(n: i64)  -> bool { return (n % 2) != 0; }
+fn is_odd(n: u32)  -> bool { return (n % 2) != 0; }
+fn is_odd(n: u64)  -> bool { return (n % 2) != 0; }
 
 // ---------------------------------------------------------------------------
 // gcd / lcm (greatest common divisor / least common multiple)
@@ -108,10 +132,61 @@ fn gcd(a: i32, b: i32) -> i32 {
     return x;
 }
 
+fn gcd(a: i64, b: i64) -> i64 {
+    let x: i64 = abs(a);
+    let y: i64 = abs(b);
+    while (y != 0) {
+        let t: i64 = y;
+        y = x % y;
+        x = t;
+    }
+    return x;
+}
+
+fn gcd(a: u32, b: u32) -> u32 {
+    let x: u32 = a;
+    let y: u32 = b;
+    while (y != 0) {
+        let t: u32 = y;
+        y = x % y;
+        x = t;
+    }
+    return x;
+}
+
+fn gcd(a: u64, b: u64) -> u64 {
+    let x: u64 = a;
+    let y: u64 = b;
+    while (y != 0) {
+        let t: u64 = y;
+        y = x % y;
+        x = t;
+    }
+    return x;
+}
+
 fn lcm(a: i32, b: i32) -> i32 {
     if (a == 0 || b == 0) { return 0; }
     let g: i32 = gcd(a, b);
     return abs((a / g) * b);
+}
+
+fn lcm(a: i64, b: i64) -> i64 {
+    if (a == 0 || b == 0) { return 0; }
+    let g: i64 = gcd(a, b);
+    return abs((a / g) * b);
+}
+
+fn lcm(a: u32, b: u32) -> u32 {
+    if (a == 0 || b == 0) { return 0; }
+    let g: u32 = gcd(a, b);
+    return (a / g) * b;
+}
+
+fn lcm(a: u64, b: u64) -> u64 {
+    if (a == 0 || b == 0) { return 0; }
+    let g: u64 = gcd(a, b);
+    return (a / g) * b;
 }
 
 // ---------------------------------------------------------------------------
@@ -132,6 +207,28 @@ fn pow(base: i32, exp: i32) -> i32 {
 fn pow(base: i64, exp: i32) -> i64 {
     if (exp < 0) { return 0; }
     let result: i64 = 1;
+    let i: i32 = 0;
+    while (i < exp) {
+        result = result * base;
+        i = i + 1;
+    }
+    return result;
+}
+
+fn pow(base: u32, exp: i32) -> u32 {
+    if (exp < 0) { return 0; }
+    let result: u32 = 1;
+    let i: i32 = 0;
+    while (i < exp) {
+        result = result * base;
+        i = i + 1;
+    }
+    return result;
+}
+
+fn pow(base: u64, exp: i32) -> u64 {
+    if (exp < 0) { return 0; }
+    let result: u64 = 1;
     let i: i32 = 0;
     while (i < exp) {
         result = result * base;
@@ -161,6 +258,39 @@ fn factorial(n: i32) -> i64 {
     if (n <= 1) { return 1; }
     let result: i64 = 1;
     let i: i32 = 2;
+    while (i <= n) {
+        result = result * i;
+        i = i + 1;
+    }
+    return result;
+}
+
+fn factorial(n: i64) -> i64 {
+    if (n <= 1) { return 1; }
+    let result: i64 = 1;
+    let i: i64 = 2;
+    while (i <= n) {
+        result = result * i;
+        i = i + 1;
+    }
+    return result;
+}
+
+fn factorial(n: u32) -> u64 {
+    if (n <= 1) { return 1; }
+    let result: u64 = 1;
+    let i: u32 = 2;
+    while (i <= n) {
+        result = result * str_to_u64(u32_to_str(i));
+        i = i + 1;
+    }
+    return result;
+}
+
+fn factorial(n: u64) -> u64 {
+    if (n <= 1) { return 1; }
+    let result: u64 = 1;
+    let i: u64 = 2;
     while (i <= n) {
         result = result * i;
         i = i + 1;

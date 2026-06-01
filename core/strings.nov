@@ -987,6 +987,44 @@ fn int_to_bin(n: i32) -> str {
     return _finish_base(digits, neg);
 }
 
+fn int_to_bin(n: i64) -> str {
+    if (n == 0) { return "0"; }
+    let val: i64 = n;
+    let neg: bool = false;
+    if (val < 0) { neg = true; val = 0 - val; }
+    let digits: str = "";
+    while (val > 0) {
+        let d: i32 = u64_to_i32(i64_to_u64(val % 2));
+        digits = digits + _base_digit(d);
+        val = val / 2;
+    }
+    return _finish_base(digits, neg);
+}
+
+fn int_to_bin(n: u32) -> str {
+    if (n == 0) { return "0"; }
+    let val: u32 = n;
+    let digits: str = "";
+    while (val > 0) {
+        let d: i32 = str_to_i32(u32_to_str(val % 2));
+        digits = digits + _base_digit(d);
+        val = val / 2;
+    }
+    return _finish_base(digits, false);
+}
+
+fn int_to_bin(n: u64) -> str {
+    if (n == 0) { return "0"; }
+    let val: u64 = n;
+    let digits: str = "";
+    while (val > 0) {
+        let d: i32 = u64_to_i32(val % 2);
+        digits = digits + _base_digit(d);
+        val = val / 2;
+    }
+    return _finish_base(digits, false);
+}
+
 fn int_to_oct(n: i32) -> str {
     if (n == 0) { return "0"; }
     let val: i32 = n;
@@ -998,6 +1036,44 @@ fn int_to_oct(n: i32) -> str {
         val = val / 8;
     }
     return _finish_base(digits, neg);
+}
+
+fn int_to_oct(n: i64) -> str {
+    if (n == 0) { return "0"; }
+    let val: i64 = n;
+    let neg: bool = false;
+    if (val < 0) { neg = true; val = 0 - val; }
+    let digits: str = "";
+    while (val > 0) {
+        let d: i32 = u64_to_i32(i64_to_u64(val % 8));
+        digits = digits + _base_digit(d);
+        val = val / 8;
+    }
+    return _finish_base(digits, neg);
+}
+
+fn int_to_oct(n: u32) -> str {
+    if (n == 0) { return "0"; }
+    let val: u32 = n;
+    let digits: str = "";
+    while (val > 0) {
+        let d: i32 = str_to_i32(u32_to_str(val % 8));
+        digits = digits + _base_digit(d);
+        val = val / 8;
+    }
+    return _finish_base(digits, false);
+}
+
+fn int_to_oct(n: u64) -> str {
+    if (n == 0) { return "0"; }
+    let val: u64 = n;
+    let digits: str = "";
+    while (val > 0) {
+        let d: i32 = u64_to_i32(val % 8);
+        digits = digits + _base_digit(d);
+        val = val / 8;
+    }
+    return _finish_base(digits, false);
 }
 
 fn int_to_hex(n: i64) -> str {

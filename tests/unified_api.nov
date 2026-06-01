@@ -162,6 +162,49 @@ fn main() -> i32 {
     fails += check_str("to_hex(i64)", to_hex(to_i64(65535)), "ffff");
     let hu32: u32 = 4096;
     fails += check_str("to_hex(u32)", to_hex(hu32), "1000");
+    let b64: i64 = 0 - 42;
+    fails += check_str("to_bin(i64)", to_bin(b64), "-101010");
+    let bu32: u32 = 10;
+    fails += check_str("to_bin(u32)", to_bin(bu32), "1010");
+    let bu64: u64 = 1024;
+    fails += check_str("to_bin(u64)", to_bin(bu64), "10000000000");
+    let o64: i64 = 0 - 64;
+    fails += check_str("to_oct(i64)", to_oct(o64), "-100");
+    let ou32: u32 = 64;
+    fails += check_str("to_oct(u32)", to_oct(ou32), "100");
+    let ou64: u64 = 4096;
+    fails += check_str("to_oct(u64)", to_oct(ou64), "10000");
+
+    print_raw("\n--- math: wider integer overloads ---\n");
+    let ui32: u32 = 12;
+    let uj32: u32 = 18;
+    fails += check_str("abs(u32)", to_str(abs(ui32)), "12");
+    fails += check_str("clamp(u32)", to_str(clamp(ui32, to_u32(0), to_u32(10))), "10");
+    fails += check_i32("sign(u32)", sign(ui32), 1);
+    fails += check_true("is_even(u32)", is_even(ui32));
+    fails += check_true("is_odd(u32)", is_odd(to_u32(7)));
+    fails += check_str("gcd(u32)", to_str(gcd(ui32, uj32)), "6");
+    fails += check_str("lcm(u32)", to_str(lcm(to_u32(4), to_u32(6))), "12");
+    fails += check_str("pow(u32)", to_str(pow(to_u32(3), 4)), "81");
+    fails += check_str("factorial(u32)", to_str(factorial(to_u32(10))), "3628800");
+
+    let li64: i64 = 48;
+    let lj64: i64 = 180;
+    fails += check_str("gcd(i64)", to_str(gcd(li64, lj64)), "12");
+    fails += check_str("lcm(i64)", to_str(lcm(li64, lj64)), "720");
+    fails += check_str("factorial(i64)", to_str(factorial(to_i64(10))), "3628800");
+
+    let uu64: u64 = 48;
+    let vv64: u64 = 180;
+    fails += check_str("abs(u64)", to_str(abs(uu64)), "48");
+    fails += check_str("clamp(u64)", to_str(clamp(vv64, to_u64(0), to_u64(100))), "100");
+    fails += check_i32("sign(u64)", sign(uu64), 1);
+    fails += check_true("is_even(u64)", is_even(uu64));
+    fails += check_true("is_odd(u64)", is_odd(to_u64(7)));
+    fails += check_str("gcd(u64)", to_str(gcd(uu64, vv64)), "12");
+    fails += check_str("lcm(u64)", to_str(lcm(to_u64(4), to_u64(6))), "12");
+    fails += check_str("pow(u64)", to_str(pow(to_u64(2), 32)), "4294967296");
+    fails += check_str("factorial(u64)", to_str(factorial(to_u64(10))), "3628800");
 
     if (fails == 0) {
         print_raw("\nAll unified-API tests PASSED\n");

@@ -171,7 +171,13 @@ fn join(arr: []str, sep: str)     -> str { return str_join(arr, sep); }
 // ---------------------------------------------------------------------------
 
 fn to_bin(n: i32) -> str { return int_to_bin(n); }
+fn to_bin(n: i64) -> str { return int_to_bin(n); }
+fn to_bin(n: u32) -> str { return int_to_bin(n); }
+fn to_bin(n: u64) -> str { return int_to_bin(n); }
 fn to_oct(n: i32) -> str { return int_to_oct(n); }
+fn to_oct(n: i64) -> str { return int_to_oct(n); }
+fn to_oct(n: u32) -> str { return int_to_oct(n); }
+fn to_oct(n: u64) -> str { return int_to_oct(n); }
 fn to_hex(n: i64) -> str { return int_to_hex(n); }
 fn to_hex(n: u32) -> str { return int_to_hex(n); }
 fn to_hex(n: u64) -> str { return int_to_hex(n); }
