@@ -90,8 +90,8 @@ main.nov              dispatcher — picks the right platform automatically
 | `to_bool(b: bool) -> bool`      | identity                          |
 | `to_hex(n: i32) -> str`         | hexadecimal representation        |
 | `to_hex(n: i64/u32/u64) -> str` | hexadecimal representation        |
-| `to_bin(n: i32) -> str`         | binary representation             |
-| `to_oct(n: i32) -> str`         | octal representation              |
+| `to_bin(n: i32/i64/u32/u64) -> str` | binary representation         |
+| `to_oct(n: i32/i64/u32/u64) -> str` | octal representation          |
 
 ### Math
 
@@ -100,15 +100,15 @@ on any supported scalar type.
 
 | Signature                                   | Description                          |
 | ------------------------------------------- | ------------------------------------ |
-| `abs(n: i32/i64/f32/f64)`                   | absolute value                       |
+| `abs(n: i32/i64/u32/u64/f32/f64)`           | absolute value                       |
 | `min(a, b)` / `max(a, b)`                   | i32/i64/u32/u64/f32/f64 min & max    |
-| `clamp(v, lo, hi)`                          | constrain to `[lo, hi]` (i32/i64/f)  |
-| `sign(n) -> i32`                            | `-1`, `0` or `1` (i32/i64/f32/f64)   |
-| `is_even(n) / is_odd(n)`                    | parity test (i32/i64)                |
-| `gcd(a: i32, b: i32) -> i32`                | greatest common divisor              |
-| `lcm(a: i32, b: i32) -> i32`                | least common multiple                |
+| `clamp(v, lo, hi)`                          | constrain to `[lo, hi]` (i32/i64/u32/u64/f) |
+| `sign(n) -> i32`                            | `-1`, `0` or `1` (i32/i64/u32/u64/f32/f64) |
+| `is_even(n) / is_odd(n)`                    | parity test (i32/i64/u32/u64)        |
+| `gcd(a, b)`                                 | greatest common divisor (i32/i64/u32/u64) |
+| `lcm(a, b)`                                 | least common multiple (i32/i64/u32/u64) |
 | `pow(base, exp: i32)`                       | integer/float exponentiation         |
-| `factorial(n: i32) -> i64`                  | `n!`                                 |
+| `factorial(n)`                              | `n!` (i32/i64/u32/u64)               |
 | `floor(x: f64) / ceil(x: f64)`             | round toward -∞ / +∞                  |
 | `round(x: f64) -> f64`                      | round to nearest                     |
 | `sqrt(x: f64) -> f64`                       | square root (Newton's method)        |
