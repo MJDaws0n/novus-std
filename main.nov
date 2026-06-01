@@ -15,6 +15,7 @@ module std;
 
 import core/core;
 import core/strings;
+import core/math;
 
 #if(os == "darwin") {
     import platforms/darwin/common;

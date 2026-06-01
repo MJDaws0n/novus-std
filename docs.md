@@ -24,7 +24,7 @@ fn main() -> i32 {
 ### Repository layout
 
 ```
-core/                 cross-platform helpers (strings, conversions, aliases)
+core/                 cross-platform helpers (strings, math, conversions, aliases)
 platforms/darwin/     macOS Apple Silicon implementation
 platforms/linux/      Linux (amd64 + arm64) implementation
 platforms/windows/    Windows (amd64 + x86) implementation
@@ -89,6 +89,29 @@ main.nov              dispatcher — picks the right platform automatically
 | `to_bool(s: str) -> bool`       | `"true"` → true                   |
 | `to_bool(b: bool) -> bool`      | identity                          |
 | `to_hex(n: i32) -> str`         | hexadecimal representation        |
+| `to_hex(n: i64/u32/u64) -> str` | hexadecimal representation        |
+| `to_bin(n: i32) -> str`         | binary representation             |
+| `to_oct(n: i32) -> str`         | octal representation              |
+
+### Math
+
+All math functions are **overloaded** — call `abs(x)`, `min(a, b)`, `max(a, b)`
+on any supported scalar type.
+
+| Signature                                   | Description                          |
+| ------------------------------------------- | ------------------------------------ |
+| `abs(n: i32/i64/f32/f64)`                   | absolute value                       |
+| `min(a, b)` / `max(a, b)`                   | i32/i64/u32/u64/f32/f64 min & max    |
+| `clamp(v, lo, hi)`                          | constrain to `[lo, hi]` (i32/i64/f)  |
+| `sign(n) -> i32`                            | `-1`, `0` or `1` (i32/i64/f32/f64)   |
+| `is_even(n) / is_odd(n)`                    | parity test (i32/i64)                |
+| `gcd(a: i32, b: i32) -> i32`                | greatest common divisor              |
+| `lcm(a: i32, b: i32) -> i32`                | least common multiple                |
+| `pow(base, exp: i32)`                       | integer/float exponentiation         |
+| `factorial(n: i32) -> i64`                  | `n!`                                 |
+| `floor(x: f64) / ceil(x: f64)`             | round toward -∞ / +∞                  |
+| `round(x: f64) -> f64`                      | round to nearest                     |
+| `sqrt(x: f64) -> f64`                       | square root (Newton's method)        |
 
 ### Containers
 
@@ -132,6 +155,19 @@ main.nov              dispatcher — picks the right platform automatically
 | `pad_left(s, total, pad) / pad_right(...)`                 | left/right padding         |
 | `replace(s, old, new_val) / replace_first(...)`            | substring replacement      |
 | `split_first(s, delim) / split_rest(s, delim)`             | split on first delim       |
+| `char_at(s, i: i32) -> str`                                | single character (or "")   |
+| `left(s, n: i32) / right(s, n: i32)`                       | first/last `n` characters  |
+| `capitalize(s) -> str`                                     | upper-case first character |
+| `title(s) -> str`                                          | upper-case each word       |
+| `swapcase(s) -> str`                                       | invert each letter's case  |
+| `remove(s, sub) -> str`                                    | delete all occurrences     |
+| `compare(a, b) -> i32`                                     | lexicographic `-1/0/1`     |
+| `equals_ignore_case(a, b) -> bool`                         | ASCII case-insensitive eq  |
+| `contains_ignore_case(s, needle) -> bool`                  | ASCII case-insensitive find|
+| `is_digits(s) / is_alpha(s) / is_alnum(s) -> bool`         | whole-string class test    |
+| `count_char(s, ch) -> i32`                                 | count of a single char     |
+| `index_of_char(s, ch) -> i32`                              | first index of char or -1  |
+| `join(arr: []str, sep: str) -> str`                        | concatenate with separator |
 
 ### I/O
 
@@ -170,7 +206,11 @@ array_contains_bool, array_contains_f32, array_contains_f64, array_contains_str,
 str_equals, str_find, str_last_find, str_count, str_is_empty, str_is_blank,
 str_lower, str_upper, str_reverse, str_repeat, str_trim, str_trim_left, str_trim_right,
 str_pad_left, str_pad_right, str_replace, str_replace_first,
-str_split_first, str_split_rest, str_contains
+str_split_first, str_split_rest, str_contains,
+str_left, str_right, str_capitalize, str_title, str_swapcase, str_remove,
+str_compare, str_equals_ignore_case, str_contains_ignore_case,
+str_is_digits, str_is_alpha, str_is_alnum, str_count_char, str_index_of_char,
+str_join, int_to_bin, int_to_oct, int_to_hex
 ```
 
 ---
@@ -181,6 +221,7 @@ str_split_first, str_split_rest, str_contains
 | --------------------------------- | ------------------------------------ |
 | `main.nov`                        | Public entry — imports everything    |
 | `core.nov`                        | core types, `len(str)`, conversions  |
+| `math.nov`                        | numeric helpers (abs, min/max, …)    |
 | `strings.nov`                     | string utilities                     |
 | `aliases.nov`                     | unified-name overloads (this file)   |
 | `darwin_arm64.nov`                | macOS Apple Silicon syscalls         |

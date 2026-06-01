@@ -1,8 +1,8 @@
 # novus-std
 
 Standard library for the [Novus](https://github.com/MJDaws0n/Novus) programming
-language. Provides core types, string/array utilities, I/O, memory access and
-platform abstractions for **macOS**, **Linux** and **Windows**.
+language. Provides core types, string/array utilities, math helpers, I/O, memory
+access and platform abstractions for **macOS**, **Linux** and **Windows**.
 
 ```novus
 module myapp;

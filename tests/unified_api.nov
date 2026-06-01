@@ -106,6 +106,63 @@ fn main() -> i32 {
     x--;
     fails += check_i32("x--", x, 26);
 
+    print_raw("\n--- math: abs / min / max / clamp / sign ---\n");
+    fails += check_i32("abs(i32)", abs(0 - 7), 7);
+    let nbig: i64 = 0 - 5000000000;
+    fails += check_str("abs(i64)", to_str(abs(nbig)), "5000000000");
+    fails += check_i32("min(i32)", min(3, 9), 3);
+    fails += check_i32("max(i32)", max(3, 9), 9);
+    fails += check_i32("clamp low", clamp(0 - 5, 0, 10), 0);
+    fails += check_i32("clamp high", clamp(15, 0, 10), 10);
+    fails += check_i32("clamp mid", clamp(7, 0, 10), 7);
+    fails += check_i32("sign(neg)", sign(0 - 4), 0 - 1);
+    fails += check_i32("sign(zero)", sign(0), 0);
+    fails += check_i32("sign(pos)", sign(4), 1);
+
+    print_raw("\n--- math: parity / gcd / lcm / pow / factorial ---\n");
+    fails += check_true("is_even(4)", is_even(4));
+    fails += check_true("is_odd(7)", is_odd(7));
+    fails += check_i32("gcd", gcd(12, 18), 6);
+    fails += check_i32("lcm", lcm(4, 6), 12);
+    fails += check_i32("pow(i32)", pow(2, 10), 1024);
+    fails += check_str("pow(i64)", to_str(pow(to_i64(2), 40)), "1099511627776");
+    fails += check_str("factorial", to_str(factorial(10)), "3628800");
+
+    print_raw("\n--- strings: slices and case ---\n");
+    fails += check_str("char_at", char_at("hello", 1), "e");
+    fails += check_str("left", left("hello", 3), "hel");
+    fails += check_str("right", right("hello", 2), "lo");
+    fails += check_str("capitalize", capitalize("hello world"), "Hello world");
+    fails += check_str("title", title("hello world"), "Hello World");
+    fails += check_str("swapcase", swapcase("Hello"), "hELLO");
+    fails += check_str("remove", remove("a-b-c", "-"), "abc");
+
+    print_raw("\n--- strings: compare and search ---\n");
+    fails += check_i32("compare lt", compare("abc", "abd"), 0 - 1);
+    fails += check_i32("compare eq", compare("abc", "abc"), 0);
+    fails += check_i32("compare gt", compare("abd", "abc"), 1);
+    fails += check_true("equals_ignore_case", equals_ignore_case("HeLLo", "hello"));
+    fails += check_true("contains_ignore_case", contains_ignore_case("Hello World", "WORLD"));
+    fails += check_i32("count_char", count_char("banana", "a"), 3);
+    fails += check_i32("index_of_char", index_of_char("hello", "l"), 2);
+    fails += check_i32("index_of_char none", index_of_char("hello", "z"), 0 - 1);
+
+    print_raw("\n--- strings: classification ---\n");
+    fails += check_true("is_digits", is_digits("12345"));
+    fails += check_true("!is_digits", !is_digits("12a45"));
+    fails += check_true("is_alpha", is_alpha("abcXYZ"));
+    fails += check_true("is_alnum", is_alnum("abc123"));
+
+    print_raw("\n--- strings: join and bases ---\n");
+    let parts: []str = ["a", "b", "c"];
+    fails += check_str("join", join(parts, "-"), "a-b-c");
+    fails += check_str("to_bin", to_bin(10), "1010");
+    fails += check_str("to_oct", to_oct(64), "100");
+    fails += check_str("to_hex(i32)", to_hex(255), "ff");
+    fails += check_str("to_hex(i64)", to_hex(to_i64(65535)), "ffff");
+    let hu32: u32 = 4096;
+    fails += check_str("to_hex(u32)", to_hex(hu32), "1000");
+
     if (fails == 0) {
         print_raw("\nAll unified-API tests PASSED\n");
         return 0;

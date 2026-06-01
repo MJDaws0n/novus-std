@@ -753,3 +753,287 @@ fn int_to_hex(n: i32) -> str {
     if (n < 0) { result = "-"; }
     return result + copy_bytes_raw(ptr(tmp) + i32_to_u64(pos), 8 - pos);
 }
+
+// ---------------------------------------------------------------------------
+// Single-character access
+// ---------------------------------------------------------------------------
+
+fn char_at(s: str, i: i32) -> str {
+    if (i < 0) { return ""; }
+    if (i >= len(s)) { return ""; }
+    return _byte_to_char(byte_at(s, i));
+}
+
+// ---------------------------------------------------------------------------
+// Prefix / suffix slices
+// ---------------------------------------------------------------------------
+
+fn str_left(s: str, n: i32) -> str {
+    if (n <= 0) { return ""; }
+    return substr_len(s, 0, n);
+}
+
+fn str_right(s: str, n: i32) -> str {
+    let sl: i32 = len(s);
+    if (n <= 0) { return ""; }
+    if (n >= sl) { return s; }
+    return substr(s, sl - n);
+}
+
+// ---------------------------------------------------------------------------
+// Case transforms beyond upper/lower
+// ---------------------------------------------------------------------------
+
+fn str_capitalize(s: str) -> str {
+    let sl: i32 = len(s);
+    if (sl == 0) { return ""; }
+    let result: str = copy_bytes_raw(ptr(s), sl);
+    let ch: i32 = byte_at(s, 0);
+    if (ch >= 97 && ch <= 122) { result[0] = ch - 32; }
+    return result;
+}
+
+fn str_title(s: str) -> str {
+    let sl: i32 = len(s);
+    if (sl == 0) { return ""; }
+    let result: str = copy_bytes_raw(ptr(s), sl);
+    let prev_space: bool = true;
+    let i: i32 = 0;
+    while (i < sl) {
+        let ch: i32 = byte_at(s, i);
+        if (prev_space && ch >= 97 && ch <= 122) {
+            result[i] = ch - 32;
+        } else if (!prev_space && ch >= 65 && ch <= 90) {
+            result[i] = ch + 32;
+        }
+        prev_space = (ch == 32 || ch == 9 || ch == 10 || ch == 13);
+        i = i + 1;
+    }
+    return result;
+}
+
+fn str_swapcase(s: str) -> str {
+    let sl: i32 = len(s);
+    if (sl == 0) { return ""; }
+    let result: str = copy_bytes_raw(ptr(s), sl);
+    let i: i32 = 0;
+    while (i < sl) {
+        let ch: i32 = byte_at(s, i);
+        if (ch >= 97 && ch <= 122) { result[i] = ch - 32; }
+        else if (ch >= 65 && ch <= 90) { result[i] = ch + 32; }
+        i = i + 1;
+    }
+    return result;
+}
+
+// ---------------------------------------------------------------------------
+// Removal (replace all occurrences with the empty string)
+// ---------------------------------------------------------------------------
+
+fn str_remove(s: str, sub: str) -> str {
+    return str_replace(s, sub, "");
+}
+
+// ---------------------------------------------------------------------------
+// Lexicographic comparison: -1 if a < b, 0 if equal, 1 if a > b
+// ---------------------------------------------------------------------------
+
+fn str_compare(a: str, b: str) -> i32 {
+    let al: i32 = len(a);
+    let bl: i32 = len(b);
+    let n: i32 = al;
+    if (bl < al) { n = bl; }
+    let i: i32 = 0;
+    while (i < n) {
+        let ca: i32 = byte_at(a, i);
+        let cb: i32 = byte_at(b, i);
+        if (ca < cb) { return 0 - 1; }
+        if (ca > cb) { return 1; }
+        i = i + 1;
+    }
+    if (al < bl) { return 0 - 1; }
+    if (al > bl) { return 1; }
+    return 0;
+}
+
+// ---------------------------------------------------------------------------
+// Case-insensitive comparison and search (ASCII)
+// ---------------------------------------------------------------------------
+
+fn str_equals_ignore_case(a: str, b: str) -> bool {
+    return str_equals(str_lower(a), str_lower(b));
+}
+
+fn str_contains_ignore_case(s: str, needle: str) -> bool {
+    return str_contains(str_lower(s), str_lower(needle));
+}
+
+// ---------------------------------------------------------------------------
+// Whole-string character class tests (false on the empty string)
+// ---------------------------------------------------------------------------
+
+fn str_is_digits(s: str) -> bool {
+    let sl: i32 = len(s);
+    if (sl == 0) { return false; }
+    let i: i32 = 0;
+    while (i < sl) {
+        if (!is_digit(byte_at(s, i))) { return false; }
+        i = i + 1;
+    }
+    return true;
+}
+
+fn str_is_alpha(s: str) -> bool {
+    let sl: i32 = len(s);
+    if (sl == 0) { return false; }
+    let i: i32 = 0;
+    while (i < sl) {
+        if (!is_alpha(byte_at(s, i))) { return false; }
+        i = i + 1;
+    }
+    return true;
+}
+
+fn str_is_alnum(s: str) -> bool {
+    let sl: i32 = len(s);
+    if (sl == 0) { return false; }
+    let i: i32 = 0;
+    while (i < sl) {
+        if (!is_alnum(byte_at(s, i))) { return false; }
+        i = i + 1;
+    }
+    return true;
+}
+
+// ---------------------------------------------------------------------------
+// Single-character counting and search
+// ---------------------------------------------------------------------------
+
+fn str_count_char(s: str, ch: str) -> i32 {
+    if (len(ch) == 0) { return 0; }
+    let target: i32 = byte_at(ch, 0);
+    let sl: i32 = len(s);
+    let count: i32 = 0;
+    let i: i32 = 0;
+    while (i < sl) {
+        if (byte_at(s, i) == target) { count = count + 1; }
+        i = i + 1;
+    }
+    return count;
+}
+
+fn str_index_of_char(s: str, ch: str) -> i32 {
+    if (len(ch) == 0) { return 0 - 1; }
+    let target: i32 = byte_at(ch, 0);
+    let sl: i32 = len(s);
+    let i: i32 = 0;
+    while (i < sl) {
+        if (byte_at(s, i) == target) { return i; }
+        i = i + 1;
+    }
+    return 0 - 1;
+}
+
+// ---------------------------------------------------------------------------
+// Join an array of strings with a separator
+// ---------------------------------------------------------------------------
+
+fn str_join(arr: []str, sep: str) -> str {
+    let n: i32 = array_len_str(arr);
+    if (n == 0) { return ""; }
+    let base: i64 = array_data_ptr_str(arr);
+    let result: str = "";
+    let i: i32 = 0;
+    while (i < n) {
+        let addr: u64 = i64_to_u64(load64(i64_to_u64(base) + i32_to_u64(i) * 8));
+        let part: str = cstr_to_str(addr);
+        if (i > 0) { result = result + sep; }
+        result = result + part;
+        i = i + 1;
+    }
+    return result;
+}
+
+// ---------------------------------------------------------------------------
+// Integer formatting in other bases
+// ---------------------------------------------------------------------------
+
+fn _base_digit(d: i32) -> str {
+    if (d < 10) { return _byte_to_char(48 + d); }
+    return _byte_to_char(97 + d - 10);
+}
+
+fn _finish_base(digits: str, neg: bool) -> str {
+    let out: str = "";
+    if (neg) { out = "-"; }
+    let i: i32 = len(digits) - 1;
+    while (i >= 0) {
+        out = out + digits[i];
+        i = i - 1;
+    }
+    return out;
+}
+
+fn int_to_bin(n: i32) -> str {
+    if (n == 0) { return "0"; }
+    let val: i32 = n;
+    let neg: bool = false;
+    if (val < 0) { neg = true; val = 0 - val; }
+    let digits: str = "";
+    while (val > 0) {
+        digits = digits + _base_digit(val % 2);
+        val = val / 2;
+    }
+    return _finish_base(digits, neg);
+}
+
+fn int_to_oct(n: i32) -> str {
+    if (n == 0) { return "0"; }
+    let val: i32 = n;
+    let neg: bool = false;
+    if (val < 0) { neg = true; val = 0 - val; }
+    let digits: str = "";
+    while (val > 0) {
+        digits = digits + _base_digit(val % 8);
+        val = val / 8;
+    }
+    return _finish_base(digits, neg);
+}
+
+fn int_to_hex(n: i64) -> str {
+    if (n == 0) { return "0"; }
+    let val: i64 = n;
+    let neg: bool = false;
+    if (val < 0) { neg = true; val = 0 - val; }
+    let digits: str = "";
+    while (val > 0) {
+        let d: i32 = u64_to_i32(i64_to_u64(val % 16));
+        digits = digits + _base_digit(d);
+        val = val / 16;
+    }
+    return _finish_base(digits, neg);
+}
+
+fn int_to_hex(n: u32) -> str {
+    if (n == 0) { return "0"; }
+    let val: u32 = n;
+    let digits: str = "";
+    while (val > 0) {
+        let d: i32 = str_to_i32(u32_to_str(val % 16));
+        digits = digits + _base_digit(d);
+        val = val / 16;
+    }
+    return _finish_base(digits, false);
+}
+
+fn int_to_hex(n: u64) -> str {
+    if (n == 0) { return "0"; }
+    let val: u64 = n;
+    let digits: str = "";
+    while (val > 0) {
+        let d: i32 = u64_to_i32(val % 16);
+        digits = digits + _base_digit(d);
+        val = val / 16;
+    }
+    return _finish_base(digits, false);
+}

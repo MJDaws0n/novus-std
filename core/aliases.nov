@@ -145,3 +145,33 @@ fn replace(s: str, old: str, new_val: str)       -> str { return str_replace(s, 
 fn replace_first(s: str, old: str, new_val: str) -> str { return str_replace_first(s, old, new_val); }
 fn split_first(s: str, delim: str)               -> str { return str_split_first(s, delim); }
 fn split_rest(s: str, delim: str)                -> str { return str_split_rest(s, delim); }
+
+// ---------------------------------------------------------------------------
+// Additional string helpers without the str_ prefix
+// ---------------------------------------------------------------------------
+
+fn left(s: str, n: i32)  -> str { return str_left(s, n); }
+fn right(s: str, n: i32) -> str { return str_right(s, n); }
+fn capitalize(s: str)    -> str { return str_capitalize(s); }
+fn title(s: str)         -> str { return str_title(s); }
+fn swapcase(s: str)      -> str { return str_swapcase(s); }
+fn remove(s: str, sub: str) -> str { return str_remove(s, sub); }
+fn compare(a: str, b: str)  -> i32 { return str_compare(a, b); }
+fn equals_ignore_case(a: str, b: str) -> bool { return str_equals_ignore_case(a, b); }
+fn contains_ignore_case(s: str, needle: str) -> bool { return str_contains_ignore_case(s, needle); }
+fn is_digits(s: str) -> bool { return str_is_digits(s); }
+fn is_alpha(s: str)  -> bool { return str_is_alpha(s); }
+fn is_alnum(s: str)  -> bool { return str_is_alnum(s); }
+fn count_char(s: str, ch: str)    -> i32 { return str_count_char(s, ch); }
+fn index_of_char(s: str, ch: str) -> i32 { return str_index_of_char(s, ch); }
+fn join(arr: []str, sep: str)     -> str { return str_join(arr, sep); }
+
+// ---------------------------------------------------------------------------
+// Base conversions
+// ---------------------------------------------------------------------------
+
+fn to_bin(n: i32) -> str { return int_to_bin(n); }
+fn to_oct(n: i32) -> str { return int_to_oct(n); }
+fn to_hex(n: i64) -> str { return int_to_hex(n); }
+fn to_hex(n: u32) -> str { return int_to_hex(n); }
+fn to_hex(n: u64) -> str { return int_to_hex(n); }
