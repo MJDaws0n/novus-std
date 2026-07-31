@@ -167,8 +167,7 @@ fn array_data_ptr_u64(arr: []u64) -> i64 {
 
 fn execve_raw(path: str, argv: []u64) -> i32 {
     let argv_ptr: i64 = array_data_ptr_u64(argv);
-    let envp: []u64 = [0];
-    let envp_ptr: i64 = array_data_ptr_u64(envp);
+    let envp_ptr: u64 = __novus_envp;
     mov(x0, path);
     mov(x1, argv_ptr);
     mov(x2, envp_ptr);

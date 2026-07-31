@@ -27,3 +27,7 @@ import core/strings;
 }
 
 import core/aliases;
+
+// Private runtime hook populated from the POSIX process entry environment.
+// execve_raw uses it so child processes inherit the caller's environment.
+let __novus_envp: u64 = 0;
